@@ -15,4 +15,5 @@ import java.util.Map;
 public class UploadFileResp {
     private FilesDto file;
     private RevisionDto revision;
+    private String status;// 如果重复上传相同文件，这个字段将会返回 "hasMatched"
 }
