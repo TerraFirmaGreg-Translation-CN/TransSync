@@ -36,3 +36,12 @@ build/
 
 ## Config ###
 config.yml
+
+### Logs ###
+logs/
+*.log
+
+### jenv ###
+.java-version
+
+config.json
