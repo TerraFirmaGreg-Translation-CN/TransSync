@@ -42,7 +42,7 @@ public class LoggingInterceptor implements Interceptor {
     @Override
     public Response intercept(Chain chain) throws IOException {
         // 如果日志级别为NONE，直接执行请求
-        if (level == Level.NONE) {
+        if (level == null || level == Level.NONE) {
             return chain.proceed(chain.request());
         }
         

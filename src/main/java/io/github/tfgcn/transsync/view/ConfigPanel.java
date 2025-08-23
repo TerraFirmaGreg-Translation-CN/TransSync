@@ -11,17 +11,13 @@ import java.util.List;
 public class ConfigPanel extends JPanel {
     private final Config config;
 
-    private JTextField githubTokenField;
     private JTextField paratranzTokenField;
-    private JTextField githubRepoField;
     private JTextField paratranzProjectIdField;
-    private JTextField localPathField;
+    private JTextField workspaceField;
     private JButton browseButton;
-    private JCheckBox autoSyncCheckbox;
-    private JSpinner syncIntervalSpinner;
     private JButton saveButton;
     
-    private List<ConfigChangeListener> listeners = new ArrayList<>();
+    private final List<ConfigChangeListener> listeners = new ArrayList<>();
     
     public ConfigPanel(Config config) {
         this.config = config;
@@ -33,15 +29,11 @@ public class ConfigPanel extends JPanel {
     }
     
     private void initComponents() {
-        githubTokenField = new JTextField(30);
         paratranzTokenField = new JTextField(30);
-        githubRepoField = new JTextField(30);
         paratranzProjectIdField = new JTextField(10);
-        localPathField = new JTextField(30);
+        workspaceField = new JTextField(30);
         browseButton = new JButton("浏览...");
         
-        autoSyncCheckbox = new JCheckBox("自动同步");
-        syncIntervalSpinner = new JSpinner(new SpinnerNumberModel(60, 1, 1440, 1));
         saveButton = new JButton("保存配置");
     }
     
@@ -71,7 +63,7 @@ public class ConfigPanel extends JPanel {
         add(new JLabel("工作目录:"), createLabelConstraints(0, row));
         gbc.gridx = 1; gbc.gridy = row;
         gbc.fill = GridBagConstraints.NONE;
-        add(localPathField, gbc);
+        add(workspaceField, gbc);
         
         gbc.gridx = 2; gbc.gridy = row++;
         add(browseButton, gbc);
@@ -105,26 +97,22 @@ public class ConfigPanel extends JPanel {
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int result = chooser.showOpenDialog(this);
         if (result == JFileChooser.APPROVE_OPTION) {
-            localPathField.setText(chooser.getSelectedFile().getAbsolutePath());
+            workspaceField.setText(chooser.getSelectedFile().getAbsolutePath());
         }
     }
     
     private void loadConfig() {
-        githubTokenField.setText("");
         paratranzTokenField.setText(config.getToken());
-        githubRepoField.setText("");
-        paratranzProjectIdField.setText(config.getProjectId() != null ?
-            config.getProjectId().toString() : Constants.DEFAULT_PROJECT_ID.toString());
-        localPathField.setText(config.getWorkspace());
-        autoSyncCheckbox.setSelected(false);
-        syncIntervalSpinner.setValue(0);
+        paratranzProjectIdField.setText(config.getProjectId() != null ? config.getProjectId().toString() :
+                Constants.DEFAULT_PROJECT_ID.toString());
+        workspaceField.setText(config.getWorkspace());
     }
     
     private void saveConfig() {
         try {
             config.setToken(paratranzTokenField.getText());
             config.setProjectId(Integer.parseInt(paratranzProjectIdField.getText()));
-            config.setWorkspace(localPathField.getText());
+            config.setWorkspace(workspaceField.getText());
 
             notifyConfigChanged(config);
             
@@ -144,7 +132,4 @@ public class ConfigPanel extends JPanel {
         }
     }
     
-    public interface ConfigChangeListener {
-        void onConfigChanged(Config newConfig);
-    }
 }

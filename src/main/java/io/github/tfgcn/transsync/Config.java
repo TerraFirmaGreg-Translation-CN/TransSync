@@ -22,15 +22,33 @@ import static io.github.tfgcn.transsync.Constants.*;
 @Setter
 public final class Config {
 
+    private static Config instance;
+
     private String token;
     private Integer projectId;
     private String httpLogLevel;
     private String workspace;
 
+    // 私有构造函数，防止外部实例化
     private Config() {
     }
 
-    public static Config load() throws IOException {
+    /**
+     * 获取单例实例
+     * @return Config单例对象
+     * @throws IOException 加载配置文件时可能发生的异常
+     */
+    public static synchronized Config getInstance() throws IOException {
+        if (instance == null) {
+            instance = loadConfig();
+        }
+        return instance;
+    }
+
+    /**
+     * 实际加载配置的方法
+     */
+    private static Config loadConfig() throws IOException {
         File file = new File(CONFIG_FILE);
 
         ObjectMapper mapper = new ObjectMapper();
@@ -50,6 +68,7 @@ public final class Config {
             config.setToken(MSG_GO_GET_TOKEN);
             config.setProjectId(DEFAULT_PROJECT_ID);
             config.setHttpLogLevel(LoggingInterceptor.Level.NONE.name());
+            config.setWorkspace(DEFAULT_WORKSPACE);
 
             // 输出到文件
             mapper.writeValue(file, config);
@@ -69,6 +88,9 @@ public final class Config {
         }
         if (newConfig.getHttpLogLevel() != null) {
             this.httpLogLevel = newConfig.getHttpLogLevel();
+        }
+        if (newConfig.getWorkspace() != null) {
+            this.workspace = newConfig.getWorkspace();
         }
     }
 

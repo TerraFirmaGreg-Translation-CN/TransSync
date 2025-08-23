@@ -1,5 +1,6 @@
 package io.github.tfgcn.transsync.paratranz.interceptor;
 
+import lombok.Setter;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -13,7 +14,8 @@ import java.io.IOException;
  * @author yanmaoyuan
  */
 public class AuthInterceptor implements Interceptor {
-    private final String token;
+    @Setter
+    private String token;
 
     public AuthInterceptor(String token) {
         this.token = token;

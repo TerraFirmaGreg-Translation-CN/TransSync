@@ -15,7 +15,6 @@ public class MainFrame extends JFrame {
     private JTabbedPane tabbedPane;
     private DashboardPanel dashboardPanel;
     private ConfigPanel configPanel;
-    private LogPanel logPanel;
 
     public MainFrame(Config config) {
         this.config = config;
@@ -43,11 +42,12 @@ public class MainFrame extends JFrame {
         
         dashboardPanel = new DashboardPanel(config);
         configPanel = new ConfigPanel(config);
-        logPanel = new LogPanel();
+
+
 
         tabbedPane.addTab("仪表盘", dashboardPanel);
         tabbedPane.addTab("配置", configPanel);
-        tabbedPane.addTab("日志", logPanel);
+        tabbedPane.addTab("日志", new LogPanel());
     }
     
     private void setupLayout() {
@@ -69,10 +69,16 @@ public class MainFrame extends JFrame {
         
         // 工具菜单
         JMenu toolsMenu = new JMenu("工具");
-        JMenuItem syncNowItem = new JMenuItem("立即同步");
-        syncNowItem.addActionListener(e -> startSync());
-        toolsMenu.add(syncNowItem);
-        
+        JMenuItem uploadOriginalFiles = new JMenuItem("上传原文");
+        uploadOriginalFiles.addActionListener(e -> uploadOriginal());
+        toolsMenu.add(uploadOriginalFiles);
+        JMenuItem uploadTranslatedFiles = new JMenuItem("上传译文");
+        uploadTranslatedFiles.addActionListener(e -> uploadTranslation());
+        toolsMenu.add(uploadTranslatedFiles);
+        JMenuItem downloadTranslatedFiles = new JMenuItem("下载译文");
+        downloadTranslatedFiles.addActionListener(e -> downloadTranslation());
+        toolsMenu.add(downloadTranslatedFiles);
+
         // 帮助菜单
         JMenu helpMenu = new JMenu("帮助");
         JMenuItem aboutItem = new JMenuItem("关于");
@@ -101,8 +107,29 @@ public class MainFrame extends JFrame {
         }
         dashboardPanel.updateConfig(config);
     }
-    
-    private void startSync() {
+
+    private void uploadOriginal() {
+        new Thread(() -> {
+            try {
+                // TODO 同步
+                JOptionPane.showMessageDialog(this, "同步完成", "成功", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "同步失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            }
+        }).start();
+    }
+
+    private void uploadTranslation() {
+        new Thread(() -> {
+            try {
+                // TODO 同步
+                JOptionPane.showMessageDialog(this, "同步完成", "成功", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "同步失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            }
+        }).start();
+    }
+    private void downloadTranslation() {
         new Thread(() -> {
             try {
                 // TODO 同步

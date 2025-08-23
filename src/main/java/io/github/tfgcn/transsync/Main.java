@@ -16,7 +16,7 @@ public class Main {
 
         ParatranzApiFactory paratranzApiFactory = new ParatranzApiFactory();
 
-        Config config = Config.load();
+        Config config = Config.getInstance();
         Integer projectId = config.getProjectId();
         Preconditions.checkArgument(projectId != null && projectId > 0,
                 "项目ID不能为空，请前往 https://paratranz.cn 获取项目ID，并写入配置文件");

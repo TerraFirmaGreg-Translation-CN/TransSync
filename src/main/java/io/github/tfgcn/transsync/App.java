@@ -17,7 +17,7 @@ public class App {
         }
         
         // 加载配置
-        Config config = Config.load();
+        Config config = Config.getInstance();
         
         // 创建并显示GUI
         SwingUtilities.invokeLater(() -> {

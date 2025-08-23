@@ -20,10 +20,15 @@ public class UsersDto {
     private String bio;
     private String avatar;
     private String email;
+    private Integer github;
+    private Integer role;
     private Integer credit;
     private Integer translated;
     private Integer edited;
     private Integer reviewed;
     private Integer commented;
-    private Integer points;
+    private Double points;
+    private Date deletedAt;
+    private Integer abusesCount;
+    private Boolean isOnline;
 }

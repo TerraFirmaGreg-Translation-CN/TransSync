@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * desc:
+ * desc: 项目信息
  *
  * @author yanmaoyuan
  */
@@ -27,7 +27,7 @@ public class ProjectsDto {
     private int members;
     private String game;
     private String license;
-    private int activeLevel;
+    private Double activeLevel;
     private int stage;
     private int privacy;
     private int download;
