@@ -109,21 +109,14 @@ public class DashboardPanel extends JPanel {
 
     private void setupEventHandlers() {
         uploadOriginalsButton.addActionListener(e -> startUploadOriginals());
+        uploadTranslationsButton.addActionListener(e -> startUploadTranslations());
         downloadTranslationsButton.addActionListener(e -> startDownloadTranslations());
-    }
-
-    /**
-     * 处理上传英语文件逻辑
-     */
-    private void handleUploadEnglishFile(ActionEvent e) {
-        JOptionPane.showMessageDialog(this, "上传英语文件功能将在这里实现", "功能提示", JOptionPane.INFORMATION_MESSAGE);
-        // 实际实现时可以打开文件选择器，然后调用相应的服务类进行上传
     }
 
     /**
      * 处理批量下载译文逻辑
      */
-    private void startDownloadTranslations() {
+    public void startDownloadTranslations() {
         disableButtons();
 
         new Thread(() -> {
@@ -219,10 +212,15 @@ public class DashboardPanel extends JPanel {
         }).start();
     }
 
+    public void startUploadTranslations() {
+        // 暂不支持
+        JOptionPane.showMessageDialog(this, "暂不支持上传译文", "错误", JOptionPane.ERROR_MESSAGE);
+    }
+
     /**
      * 上传原文逻辑
      */
-    private void startUploadOriginals() {
+    public void startUploadOriginals() {
         disableButtons();
 
         new Thread(() -> {

@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ProgressDialog extends JDialog {
 
-    // 颜色常量定义（便于统一维护）
+    // 颜色常量定义
     private static final Color RED_BUTTON_COLOR = new Color(220, 53, 69);    // 取消按钮红色
     private static final Color GREEN_BUTTON_COLOR = new Color(40, 167, 69);  // 完成按钮绿色
     private static final Color BUTTON_TEXT_COLOR = Color.WHITE;              // 按钮文字白色
@@ -27,7 +27,6 @@ public class ProgressDialog extends JDialog {
     private JTable progressTable;
     private DefaultTableModel tableModel;
     private JProgressBar overallProgress;
-    private JLabel progressLabel;
     private int totalFiles;
     @Getter
     private int completedFiles;
@@ -59,11 +58,12 @@ public class ProgressDialog extends JDialog {
     }
 
     private void initUI(List<String> fileItems) {
-        // 创建主面板
+        // 创建主面板（BorderLayout）
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15)); // 主面板内边距
 
-        // 1. 表格模型（文件名、状态）
+        // 1. 表格区域（文件上传状态）
+        // 表格模型（文件名、状态）
         tableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -81,27 +81,40 @@ public class ProgressDialog extends JDialog {
             }});
         }
 
-        // 创建表格并设置滚动面板（固定高度）
+        // 创建表格并设置滚动面板
         progressTable = new JTable(tableModel);
-        progressTable.getColumnModel().getColumn(0).setPreferredWidth(600);
-        progressTable.getColumnModel().getColumn(1).setPreferredWidth(150);
+        progressTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        progressTable.getColumnModel().getColumn(0).setMinWidth(600);
+        progressTable.getColumnModel().getColumn(1).setMinWidth(150);
         progressTable.setRowHeight(25);
 
         JScrollPane scrollPane = new JScrollPane(progressTable);
-        scrollPane.setPreferredSize(new Dimension(650, 350));
         scrollPane.setBorder(BorderFactory.createTitledBorder("文件上传状态"));
+        mainPanel.add(scrollPane, BorderLayout.CENTER); // 表格占满中间区域
 
-        // 2. 进度条和进度文本
+
+        // 2. 底部区域（进度条 + 按钮）：核心修复！用垂直BoxLayout整合
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS)); // 垂直排列
+        bottomPanel.setBorder(new EmptyBorder(10, 0, 0, 0)); // 顶部间距（与表格分隔）
+
+
+        // 2.1 进度条面板（包含进度条和计数文本）
         JPanel progressPanel = new JPanel(new BorderLayout(10, 0));
+        progressPanel.setBorder(BorderFactory.createTitledBorder("总体进度")); // 进度条标题边框
 
+        // 进度条优化：启用百分比文本，设置高度
         overallProgress = new JProgressBar(0, totalFiles);
-        overallProgress.setStringPainted(false);
-
-        progressLabel = new JLabel("0/" + totalFiles);
-        progressLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        overallProgress.setStringPainted(true); // 显示百分比（如 "50%"）
+        overallProgress.setPreferredSize(new Dimension(0, 20)); // 固定进度条高度，宽度自适应
 
         progressPanel.add(overallProgress, BorderLayout.CENTER);
-        progressPanel.add(progressLabel, BorderLayout.EAST);
+        bottomPanel.add(progressPanel); // 进度条添加到底部容器
+
+
+        // 2.2 按钮面板（取消/完成按钮）
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBorder(new EmptyBorder(10, 0, 0, 0)); // 顶部间距（与进度条分隔）
 
         // 取消按钮
         cancelButton = new JButton("取消");
@@ -111,21 +124,17 @@ public class ProgressDialog extends JDialog {
         // 完成按钮（初始隐藏）
         completeButton = new JButton("完成");
         customizeButton(completeButton, GREEN_BUTTON_COLOR);
-        completeButton.addActionListener(e -> {
-            dispose(); // 点击完成后关闭对话框
-        });
+        completeButton.addActionListener(e -> dispose()); // 关闭对话框
         completeButton.setVisible(false);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.add(cancelButton);
+        buttonPanel.add(Box.createRigidArea(new Dimension(10, 0))); // 按钮间距
         buttonPanel.add(completeButton);
+        bottomPanel.add(buttonPanel); // 按钮添加到底部容器
 
-        // 组装面板
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)), BorderLayout.SOUTH);
-        mainPanel.add(progressPanel, BorderLayout.SOUTH);
-        mainPanel.add(buttonPanel, BorderLayout.PAGE_END);
 
+        // 3. 组装主面板：底部容器整体添加到SOUTH方位
+        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
         setContentPane(mainPanel);
     }
 
@@ -133,10 +142,10 @@ public class ProgressDialog extends JDialog {
     private void customizeButton(JButton button, Color bgColor) {
         button.setBackground(bgColor);
         button.setForeground(BUTTON_TEXT_COLOR);
-        button.setBorderPainted(false);  // 去除边框
-        button.setOpaque(true);         // 确保背景色可见
-        button.setPreferredSize(new Dimension(100, 30)); // 统一按钮大小
-        // 添加鼠标悬停效果
+        button.setBorderPainted(false);
+        button.setOpaque(true);
+        button.setPreferredSize(new Dimension(100, 30));
+        // 鼠标悬停效果
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 button.setBackground(bgColor.darker());
@@ -149,19 +158,39 @@ public class ProgressDialog extends JDialog {
 
     // 更新单个文件状态
     public void updateFileStatus(int index, String status) {
-        tableModel.setValueAt(status, index, 1);
+        // 确保UI更新在EDT线程（Swing线程安全）
+        SwingUtilities.invokeLater(() -> {
+            tableModel.setValueAt(status, index, 1);
 
-        // 如果状态是完成或失败，更新总体进度
-        if ("完成".equals(status) || status.startsWith("失败")) {
-            completedFiles++;
-            overallProgress.setValue(completedFiles);
-            progressLabel.setText(completedFiles + "/" + totalFiles);
+            // 自动滚动到当前更新的行
+            scrollToRow(index);
+
+            if (status.startsWith("完成") || status.startsWith("失败") || status.startsWith("跳过")) {
+                completedFiles++;
+                overallProgress.setValue(completedFiles);
+                // 同步进度条文本（如 "3/5 (60%)"）
+                overallProgress.setString(completedFiles + "/" + totalFiles + " (" +
+                        (totalFiles == 0 ? 0 : (completedFiles * 100 / totalFiles)) + "%)");
+            }
+
+        });
+    }
+
+    // 滚动到指定行
+    private void scrollToRow(int rowIndex) {
+        if (rowIndex < 0 || rowIndex >= tableModel.getRowCount()) {
+            return; // 无效行索引，直接返回
         }
+
+        // 确保行可见
+        progressTable.scrollRectToVisible(progressTable.getCellRect(rowIndex, 0, true));
+
+        // 可选：高亮显示当前行
+        progressTable.setRowSelectionInterval(rowIndex, rowIndex);
     }
 
     // 处理取消操作
     private void handleCancel() {
-        // 询问用户确认
         int confirm = JOptionPane.showConfirmDialog(
                 this,
                 "确定要取消吗？未完成的文件将停止上传/下载。",
@@ -170,31 +199,29 @@ public class ProgressDialog extends JDialog {
         );
 
         if (confirm == JOptionPane.YES_OPTION) {
-            // 设置取消标记
             isCancelled.set(true);
             cancelButton.setEnabled(false);
             cancelButton.setText("取消中...");
-            cancelButton.setBackground(RED_BUTTON_COLOR.brighter()); // 视觉反馈
+            cancelButton.setBackground(RED_BUTTON_COLOR.brighter());
         }
     }
 
-    // 处理窗口关闭操作（根据任务状态改变行为）
+    // 处理窗口关闭操作（不变）
     private void handleWindowClose() {
         if (isCompleted) {
-            // 任务已完成，直接关闭
             dispose();
         } else {
-            // 任务进行中，当作取消操作处理
             handleCancel();
         }
     }
 
-    // 任务结束时更新按钮状态
+    // 任务结束时更新按钮状态（不变）
     public void onTaskFinished() {
-        cancelButton.setVisible(false);
-        completeButton.setVisible(true);
-        isCompleted = true;
-        // 更改对话框标题以反映最终状态
-        setTitle(isCancelled.get() ? getTitle() + " - 已取消" : getTitle() + " - 完成");
+        SwingUtilities.invokeLater(() -> {
+            cancelButton.setVisible(false);
+            completeButton.setVisible(true);
+            isCompleted = true;
+            setTitle(isCancelled.get() ? getTitle() + " - 已取消" : getTitle() + " - 完成");
+        });
     }
 }

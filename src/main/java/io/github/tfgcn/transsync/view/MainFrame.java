@@ -43,8 +43,6 @@ public class MainFrame extends JFrame {
         dashboardPanel = new DashboardPanel(config);
         configPanel = new ConfigPanel(config);
 
-
-
         tabbedPane.addTab("仪表盘", dashboardPanel);
         tabbedPane.addTab("配置", configPanel);
         tabbedPane.addTab("日志", new LogPanel());
@@ -70,13 +68,13 @@ public class MainFrame extends JFrame {
         // 工具菜单
         JMenu toolsMenu = new JMenu("工具");
         JMenuItem uploadOriginalFiles = new JMenuItem("上传原文");
-        uploadOriginalFiles.addActionListener(e -> uploadOriginal());
+        uploadOriginalFiles.addActionListener(e -> dashboardPanel.startUploadOriginals());
         toolsMenu.add(uploadOriginalFiles);
         JMenuItem uploadTranslatedFiles = new JMenuItem("上传译文");
-        uploadTranslatedFiles.addActionListener(e -> uploadTranslation());
+        uploadTranslatedFiles.addActionListener(e -> dashboardPanel.startUploadTranslations());
         toolsMenu.add(uploadTranslatedFiles);
         JMenuItem downloadTranslatedFiles = new JMenuItem("下载译文");
-        downloadTranslatedFiles.addActionListener(e -> downloadTranslation());
+        downloadTranslatedFiles.addActionListener(e -> dashboardPanel.startDownloadTranslations());
         toolsMenu.add(downloadTranslatedFiles);
 
         // 帮助菜单
@@ -106,38 +104,6 @@ public class MainFrame extends JFrame {
             log.error("保存配置文件失败", e);
         }
         dashboardPanel.updateConfig(config);
-    }
-
-    private void uploadOriginal() {
-        new Thread(() -> {
-            try {
-                // TODO 同步
-                JOptionPane.showMessageDialog(this, "同步完成", "成功", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "同步失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-            }
-        }).start();
-    }
-
-    private void uploadTranslation() {
-        new Thread(() -> {
-            try {
-                // TODO 同步
-                JOptionPane.showMessageDialog(this, "同步完成", "成功", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "同步失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-            }
-        }).start();
-    }
-    private void downloadTranslation() {
-        new Thread(() -> {
-            try {
-                // TODO 同步
-                JOptionPane.showMessageDialog(this, "同步完成", "成功", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "同步失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-            }
-        }).start();
     }
     
     private void showAboutDialog() {
