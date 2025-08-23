@@ -3,10 +3,10 @@ package io.github.tfgcn.transsync.app;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.github.tfgcn.transsync.Constants;
-import io.github.tfgcn.transsync.exception.ApiException;
+import io.github.tfgcn.transsync.paratranz.error.ApiException;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
-import io.github.tfgcn.transsync.paratranz.model.files.UploadFileResp;
+import io.github.tfgcn.transsync.paratranz.model.files.FileUploadRespDto;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
@@ -101,7 +101,6 @@ public class SyncToParatranz {
             }
         } else {
             log.error("Failed to get files list: {}", getFilesResp.message());
-            throw new ApiException();
         }
     }
 
@@ -205,12 +204,9 @@ public class SyncToParatranz {
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
                 RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
 
-        Response<UploadFileResp> updateResp = filesApi.updateFile(projectId, existedFile.getId(), filePart).execute();
+        Response<FileUploadRespDto> updateResp = filesApi.updateFile(projectId, existedFile.getId(), filePart).execute();
         if (updateResp.isSuccessful()) {
             log.info("update success: {}", updateResp.body());
-        } else {
-            log.error("update failed: {}", updateResp.errorBody());
-            throw new ApiException();
         }
     }
 
@@ -222,12 +218,9 @@ public class SyncToParatranz {
 
         RequestBody pathPart = RequestBody.create(path, Constants.MULTIPART_FORM_DATA);
 
-        Response<UploadFileResp> uploadResp = filesApi.uploadFile(projectId, pathPart, filePart).execute();
+        Response<FileUploadRespDto> uploadResp = filesApi.uploadFile(projectId, pathPart, filePart).execute();
         if (uploadResp.isSuccessful()) {
             log.info("upload success: {}", uploadResp.body());
-        } else {
-            log.error("upload failed: {}", uploadResp.errorBody());
-            throw new ApiException();
         }
     }
 }

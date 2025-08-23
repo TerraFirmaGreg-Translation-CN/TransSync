@@ -2,7 +2,7 @@ package io.github.tfgcn.transsync;
 
 import com.google.common.base.Preconditions;
 import io.github.tfgcn.transsync.app.SyncToParatranz;
-import io.github.tfgcn.transsync.exception.ApiException;
+import io.github.tfgcn.transsync.paratranz.error.ApiException;
 import io.github.tfgcn.transsync.paratranz.ApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import lombok.extern.slf4j.Slf4j;

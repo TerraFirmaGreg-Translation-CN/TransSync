@@ -45,3 +45,5 @@ logs/
 .java-version
 
 config.json
+test
+tmp

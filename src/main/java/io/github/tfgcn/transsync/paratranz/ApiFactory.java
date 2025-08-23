@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.github.tfgcn.transsync.Config;
+import io.github.tfgcn.transsync.paratranz.error.ErrorHandlingCallAdapterFactory;
 import io.github.tfgcn.transsync.paratranz.interceptor.AuthInterceptor;
 import io.github.tfgcn.transsync.paratranz.interceptor.LoggingInterceptor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,7 @@ public class ApiFactory {
                 .baseUrl("https://paratranz.cn/api/")
                 .client(okHttpClient)
                 .addConverterFactory(JacksonConverterFactory.create(mapper))
+                .addCallAdapterFactory(new ErrorHandlingCallAdapterFactory())
                 .build();
     }
 
