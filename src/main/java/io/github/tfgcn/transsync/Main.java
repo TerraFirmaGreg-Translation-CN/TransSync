@@ -1,7 +1,7 @@
 package io.github.tfgcn.transsync;
 
 import com.google.common.base.Preconditions;
-import io.github.tfgcn.transsync.service.UploadOriginalService;
+import io.github.tfgcn.transsync.service.SyncService;
 import io.github.tfgcn.transsync.paratranz.error.ApiException;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
@@ -23,7 +23,7 @@ public class Main {
 
         FilesApi filesApi = paratranzApiFactory.create(FilesApi.class);
 
-        UploadOriginalService app = new UploadOriginalService();
+        SyncService app = new SyncService();
         app.setFilesApi(filesApi);
         app.setProjectId(projectId);
 
@@ -31,7 +31,7 @@ public class Main {
         app.setWorkspace("..");
 
         // 扫描所有需要汉化的文件
-        app.pushToParatranz();
+        app.uploadOriginals();
 
     }
 }

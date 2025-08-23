@@ -2,11 +2,12 @@ package io.github.tfgcn.transsync.view;
 
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
-import io.github.tfgcn.transsync.service.SyncService;
+import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
+import io.github.tfgcn.transsync.service.ConfigCheckService;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
-import io.github.tfgcn.transsync.service.UploadOriginalService;
+import io.github.tfgcn.transsync.service.SyncService;
 import org.apache.commons.collections4.CollectionUtils;
 
 import javax.swing.*;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class DashboardPanel extends JPanel {
 
@@ -28,7 +30,6 @@ public class DashboardPanel extends JPanel {
     private JButton uploadOriginalsButton;  // 上传同步按钮
     private JButton uploadTranslationsButton;  // 上传同步按钮
     private JButton downloadTranslationsButton; // 下载同步按钮
-    private JProgressBar progressBar;
 
     public DashboardPanel(Config config) {
         this.config = config;
@@ -51,9 +52,6 @@ public class DashboardPanel extends JPanel {
         uploadOriginalsButton = new JButton("上传原文");
         uploadTranslationsButton = new JButton("上传译文");
         downloadTranslationsButton = new JButton("下载译文");
-
-        progressBar = new JProgressBar();
-        progressBar.setVisible(false);
 
         // 统一按钮大小
         Dimension buttonSize = new Dimension(120, 25);
@@ -84,7 +82,6 @@ public class DashboardPanel extends JPanel {
         controlPanel.add(uploadOriginalsButton);
         controlPanel.add(uploadTranslationsButton);
         controlPanel.add(downloadTranslationsButton);
-        controlPanel.add(progressBar);
 
         gbc.gridy = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -112,7 +109,7 @@ public class DashboardPanel extends JPanel {
 
     private void setupEventHandlers() {
         uploadOriginalsButton.addActionListener(e -> startUploadOriginals());
-        downloadTranslationsButton.addActionListener(e -> startDownloadSync());
+        downloadTranslationsButton.addActionListener(e -> startDownloadTranslations());
     }
 
     /**
@@ -126,9 +123,100 @@ public class DashboardPanel extends JPanel {
     /**
      * 处理批量下载译文逻辑
      */
-    private void handleDownloadTranslations(ActionEvent e) {
-        JOptionPane.showMessageDialog(this, "批量下载译文功能将在这里实现", "功能提示", JOptionPane.INFORMATION_MESSAGE);
-        // 实际实现时可以打开目录选择器，然后调用相应的服务类进行下载
+    private void startDownloadTranslations() {
+        disableButtons();
+
+        new Thread(() -> {
+            AtomicReference<ProgressDialog> progressDialog = new AtomicReference<>();
+
+            try {
+                // 执行上传同步逻辑
+                SyncService service = new SyncService();
+                service.setWorkspace(config.getWorkspace());// 此处会检测工作目录，如果找不到Tools-Modern项目则抛出异常
+                service.setProjectId(config.getProjectId());
+
+                ParatranzApiFactory factory = new ParatranzApiFactory(config);
+                FilesApi filesApi = factory.create(FilesApi.class);
+                service.setFilesApi(filesApi);
+
+                // 扫描远程文件文件
+                List<FilesDto> remoteFiles = service.fetchRemoteFiles();
+                List<String> fileNames = remoteFiles.stream().map(FilesDto::getName).collect(Collectors.toList());
+
+                // 创建并显示进度对话框
+                SwingUtilities.invokeAndWait(() -> {
+                    progressDialog.set(new ProgressDialog(
+                            (Frame) SwingUtilities.getWindowAncestor(DashboardPanel.this),
+                            "下载译文",
+                            fileNames
+                    ));
+                });
+
+                // 显示对话框
+                SwingUtilities.invokeLater(() -> progressDialog.get().setVisible(true));
+
+                AtomicBoolean isCancelled = progressDialog.get().getIsCancelled();
+
+                // 读取远程文件，建立缓存
+                service.fetchRemoteFiles();
+
+                // 执行上传操作
+                for (int i = 0; i < remoteFiles.size(); i++) {
+                    // 检查是否已取消，如果是则跳出循环
+                    if (isCancelled.get()) {
+                        // 更新剩余文件状态为"已取消"
+                        for (int j = i; j < fileNames.size(); j++) {
+                            final int idx = j;
+                            SwingUtilities.invokeLater(() ->
+                                    progressDialog.get().updateFileStatus(idx, "已取消")
+                            );
+                        }
+                        break;
+                    }
+
+                    FilesDto remoteFile = remoteFiles.get(i);
+                    final int index = i;
+
+                    // 更新文件状态为"进行中"
+                    SwingUtilities.invokeLater(() -> {
+                        progressDialog.get().updateFileStatus(index, "进行中");
+                    });
+
+                    try {
+                        // 执行下载
+                        String result = service.downloadTranslation(remoteFile);
+                        // 下载成功
+                        SwingUtilities.invokeLater(() ->
+                                progressDialog.get().updateFileStatus(index, result)
+                        );
+                    } catch (Exception ex) {
+                        // 下载失败
+                        final String finalErrorMsg = ex.getMessage() != null ? ex.getMessage() : "未知错误";
+                        SwingUtilities.invokeLater(() ->
+                                progressDialog.get().updateFileStatus(index, "失败: " + finalErrorMsg)
+                        );
+                    }
+                }
+                // 同步完成后更新UI
+                SwingUtilities.invokeLater(() -> {
+                    progressDialog.get().onTaskFinished(); // 关闭对话框
+                    enableButtons();
+
+                    // 刷新项目信息
+                    loadProjectInfo();
+                    updateStatus();
+                });
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() -> {
+                    if (progressDialog.get() != null) {
+                        progressDialog.get().dispose();
+                    }
+                    enableButtons();
+                    JOptionPane.showMessageDialog(this, "下载译文失败: " + e.getMessage(),
+                            "错误", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
     }
 
     /**
@@ -142,7 +230,7 @@ public class DashboardPanel extends JPanel {
 
             try {
                 // 执行上传同步逻辑
-                UploadOriginalService service = new UploadOriginalService();
+                SyncService service = new SyncService();
                 service.setWorkspace(config.getWorkspace());// 此处会检测工作目录，如果找不到Tools-Modern项目则抛出异常
                 service.setProjectId(config.getProjectId());
 
@@ -166,7 +254,7 @@ public class DashboardPanel extends JPanel {
                 SwingUtilities.invokeAndWait(() -> {
                     progressDialog.set(new ProgressDialog(
                             (Frame) SwingUtilities.getWindowAncestor(DashboardPanel.this),
-                            "上传文件",
+                            "上传原文",
                             fileNames
                     ));
                 });
@@ -202,14 +290,14 @@ public class DashboardPanel extends JPanel {
 
                     try {
                         // 执行上传
-                        String result = service.uploadFile(file);
+                        String result = service.uploadOriginalFile(file);
                         // 上传成功
                         SwingUtilities.invokeLater(() ->
                                 progressDialog.get().updateFileStatus(index, result)
                         );
-                    } catch (Exception e) {
+                    } catch (Exception ex) {
                         // 上传失败
-                        final String finalErrorMsg = e.getMessage() != null ? e.getMessage() : "未知错误";
+                        final String finalErrorMsg = ex.getMessage() != null ? ex.getMessage() : "未知错误";
                         SwingUtilities.invokeLater(() ->
                                 progressDialog.get().updateFileStatus(index, "失败: " + finalErrorMsg)
                         );
@@ -226,49 +314,12 @@ public class DashboardPanel extends JPanel {
                 });
             } catch (Exception e) {
                 SwingUtilities.invokeLater(() -> {
-                    progressBar.setVisible(false);
                     if (progressDialog.get() != null) {
                         progressDialog.get().dispose();
                     }
                     enableButtons();
-                    JOptionPane.showMessageDialog(this, "上传同步失败: " + e.getMessage(),
+                    JOptionPane.showMessageDialog(this, "上传原文失败: " + e.getMessage(),
                             "错误", JOptionPane.ERROR_MESSAGE);
-                });
-            }
-        }).start();
-    }
-
-    /**
-     * 下载同步逻辑
-     */
-    private void startDownloadSync() {
-        disableButtons();
-        progressBar.setVisible(true);
-        progressBar.setIndeterminate(true);
-
-        new Thread(() -> {
-            try {
-                // 执行上传同步逻辑
-                Thread.sleep(2000L);
-                // 执行下载同步逻辑
-                SyncService syncService = new SyncService();
-                // syncService.downloadSync(); // 假设存在此方法
-
-                // 同步完成后更新UI
-                SwingUtilities.invokeLater(() -> {
-                    progressBar.setVisible(false);
-                    enableButtons();
-                    JOptionPane.showMessageDialog(this, "下载同步完成", "成功", JOptionPane.INFORMATION_MESSAGE);
-
-                    // 同步后刷新项目信息和状态
-                    loadProjectInfo();
-                    updateStatus();
-                });
-            } catch (Exception e) {
-                SwingUtilities.invokeLater(() -> {
-                    progressBar.setVisible(false);
-                    enableButtons();
-                    JOptionPane.showMessageDialog(this, "下载同步失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
                 });
             }
         }).start();
@@ -290,8 +341,8 @@ public class DashboardPanel extends JPanel {
         // 检查Paratranz连接状态
         new Thread(() -> {
             try {
-                SyncService syncService = new SyncService();
-                boolean paratranzConnected = syncService.checkParatranzConnected();
+                ConfigCheckService configCheckService = new ConfigCheckService();
+                boolean paratranzConnected = configCheckService.checkParatranzConnected();
                 SwingUtilities.invokeLater(() ->
                         paratranzStatusLabel.setText(paratranzConnected ? "已连接" : "连接失败"));
             } catch (Exception e) {

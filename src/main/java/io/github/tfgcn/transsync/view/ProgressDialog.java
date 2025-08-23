@@ -104,7 +104,7 @@ public class ProgressDialog extends JDialog {
         progressPanel.add(progressLabel, BorderLayout.EAST);
 
         // 取消按钮
-        cancelButton = new JButton("取消上传");
+        cancelButton = new JButton("取消");
         customizeButton(cancelButton, RED_BUTTON_COLOR);
         cancelButton.addActionListener(e -> handleCancel());
 
@@ -164,7 +164,7 @@ public class ProgressDialog extends JDialog {
         // 询问用户确认
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "确定要取消上传吗？未完成的文件将停止上传。",
+                "确定要取消吗？未完成的文件将停止上传/下载。",
                 "确认取消",
                 JOptionPane.YES_NO_OPTION
         );
@@ -195,6 +195,6 @@ public class ProgressDialog extends JDialog {
         completeButton.setVisible(true);
         isCompleted = true;
         // 更改对话框标题以反映最终状态
-        setTitle(isCancelled.get() ? "任务已取消" : "任务完成");
+        setTitle(isCancelled.get() ? getTitle() + " - 已取消" : getTitle() + " - 完成");
     }
 }
