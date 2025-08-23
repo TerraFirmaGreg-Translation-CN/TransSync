@@ -1,4 +1,4 @@
-package io.github.tfgcn.transsync.app;
+package io.github.tfgcn.transsync.service;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -25,12 +25,12 @@ import java.util.Map;
 import static io.github.tfgcn.transsync.Constants.*;
 
 /**
- * desc:
+ * desc: 封装 paratranz 服务
  *
  * @author yanmaoyuan
  */
 @Slf4j
-public class SyncToParatranz {
+public class ParatranzService {
 
     private final FilesApi filesApi;
     private final Integer projectId;
@@ -41,7 +41,7 @@ public class SyncToParatranz {
     private List<FilesDto> remoteFiles;
     private Map<String, FilesDto> remoteFilesMap;
 
-    public SyncToParatranz(FilesApi filesApi, Integer projectId) {
+    public ParatranzService(FilesApi filesApi, Integer projectId) {
         this.filesApi = filesApi;
         this.projectId = projectId;
         this.remoteFiles = Collections.emptyList();

@@ -18,16 +18,16 @@ import java.io.IOException;
 import static io.github.tfgcn.transsync.Constants.*;
 
 /**
- * desc:
+ * desc: paratranz 接口工厂
  *
  * @author yanmaoyuan
  */
 @Slf4j
-public class ApiFactory {
+public class ParatranzApiFactory {
 
     private final Retrofit retrofit;
 
-    public ApiFactory() throws IOException {
+    public ParatranzApiFactory() throws IOException {
         // 从配置文件中读取token
         Config config = Config.load();
         String token = config.getToken();

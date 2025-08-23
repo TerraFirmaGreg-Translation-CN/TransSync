@@ -25,6 +25,7 @@ public final class Config {
     private String token;
     private Integer projectId;
     private String httpLogLevel;
+    private String workspace;
 
     private Config() {
     }
@@ -57,5 +58,24 @@ public final class Config {
             config = mapper.readValue(file, Config.class);
         }
         return config;
+    }
+
+    public void merge(Config newConfig) {
+        if (newConfig.getToken() != null) {
+            this.token = newConfig.getToken();
+        }
+        if (newConfig.getProjectId() != null) {
+            this.projectId = newConfig.getProjectId();
+        }
+        if (newConfig.getHttpLogLevel() != null) {
+            this.httpLogLevel = newConfig.getHttpLogLevel();
+        }
+    }
+
+    public void save() throws IOException {
+        File file = new File(CONFIG_FILE);
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.writerWithDefaultPrettyPrinter();
+        mapper.writeValue(file, this);
     }
 }

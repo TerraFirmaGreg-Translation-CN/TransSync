@@ -15,6 +15,20 @@
     </properties>
 
     <dependencies>
+        <!-- swing modern look and feel -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.6.1</version>
+        </dependency>
+
+        <!-- Git -->
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit</artifactId>
+            <version>7.3.0.202506031305-r</version>
+        </dependency>
+
         <!-- http client -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
@@ -82,7 +96,6 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.5.18</version>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- snakeyml -->
