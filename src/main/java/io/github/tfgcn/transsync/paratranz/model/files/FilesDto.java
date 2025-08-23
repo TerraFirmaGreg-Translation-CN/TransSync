@@ -1,6 +1,5 @@
 package io.github.tfgcn.transsync.paratranz.model.files;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.util.Date;
@@ -14,11 +13,8 @@ import java.util.Map;
 @Data
 public class FilesDto {
     private Integer id;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private Date createdAt;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private Date updatedAt;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private Date modifiedAt;
     private String name;
     private Integer project;

@@ -11,7 +11,7 @@ import retrofit2.http.*;
 import java.util.List;
 
 /**
- * desc:
+ * desc: 文件相关接口
  *
  * @author yanmaoyuan
  */
@@ -38,6 +38,16 @@ public interface FilesApi {
                                        @Part MultipartBody.Part file);
 
     /**
+     * 通过ID获取文件信息
+     * @param projectId 项目ID
+     * @param fileId 文件ID
+     * @return 文件信息
+     */
+    @GET("projects/{projectId}/files/{fileId}")
+    Call<FilesDto> getFile(@Path("projectId") Integer projectId,
+                           @Path("fileId") Integer fileId);
+
+    /**
      * 通过ID上传并更新文件。
      * <p>注意此接口仅更新原文，不对译文做改动， 更新译文请用下方的更新文件接口 <code>POST /projects/{projectId}/files/{fileId}/translation</code></p>
      * @param projectId 项目ID
@@ -50,6 +60,28 @@ public interface FilesApi {
     Call<FileUploadRespDto> updateFile(@Path("projectId") Integer projectId,
                                        @Path("fileId") Integer fileId,
                                        @Part MultipartBody.Part file);
+
+    /**
+     * 通过ID修改文件信息
+     * @param projectId 项目ID
+     * @param fileId 文件ID
+     * @param data 文件数据
+     * @return 文件信息
+     */
+    @PUT("projects/{projectId}/files/{fileId}")
+    Call<FilesDto> updateFileInfo(@Path("projectId") Integer projectId,
+                                  @Path("fileId") Integer fileId,
+                                  @Body Object data);
+
+    /**
+     * 通过ID删除文件
+     * @param projectId 项目ID
+     * @param fileId 文件ID
+     * @return 删除结果
+     */
+    @DELETE("projects/{projectId}/files/{fileId}")
+    Call<Void> deleteFile(@Path("projectId") Integer projectId,
+                          @Path("fileId") Integer fileId);
 
     /**
      * 通过ID获取文件翻译数据

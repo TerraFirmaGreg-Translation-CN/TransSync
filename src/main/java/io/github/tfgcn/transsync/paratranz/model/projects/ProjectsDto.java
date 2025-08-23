@@ -1,6 +1,5 @@
 package io.github.tfgcn.transsync.paratranz.model.projects;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.github.tfgcn.transsync.paratranz.model.users.UsersDto;
 import lombok.Data;
 
@@ -16,9 +15,7 @@ import java.util.Map;
 @Data
 public class ProjectsDto {
     private int id;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private Date createdAt;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private Date updatedAt;
     private int uid;
     private UsersDto user;

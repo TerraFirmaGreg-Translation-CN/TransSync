@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * desc:
+ * desc: 项目接口测试
  *
  * @author yanmaoyuan
  */

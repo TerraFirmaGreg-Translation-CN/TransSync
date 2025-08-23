@@ -3,9 +3,9 @@ package io.github.tfgcn.transsync.paratranz.error;
 import lombok.Data;
 
 /**
- * desc:
+ * desc: 接口错误信息
  *
- * @author: yanmaoyuan
+ * @author yanmaoyuan
  */
 @Data
 public class ApiError {
