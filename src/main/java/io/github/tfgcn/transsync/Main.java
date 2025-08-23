@@ -1,7 +1,7 @@
 package io.github.tfgcn.transsync;
 
 import com.google.common.base.Preconditions;
-import io.github.tfgcn.transsync.service.ParatranzService;
+import io.github.tfgcn.transsync.service.UploadOriginalService;
 import io.github.tfgcn.transsync.paratranz.error.ApiException;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
@@ -23,7 +23,9 @@ public class Main {
 
         FilesApi filesApi = paratranzApiFactory.create(FilesApi.class);
 
-        ParatranzService app = new ParatranzService(filesApi, projectId);
+        UploadOriginalService app = new UploadOriginalService();
+        app.setFilesApi(filesApi);
+        app.setProjectId(projectId);
 
         // 默认本项目与 Tools-Modern 处于同级目录，因此直接到上级目录查找即可
         app.setWorkspace("..");

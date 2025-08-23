@@ -1,17 +1,25 @@
 package io.github.tfgcn.transsync.view;
 
 import io.github.tfgcn.transsync.Config;
+import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.service.SyncService;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
+import io.github.tfgcn.transsync.service.UploadOriginalService;
+import org.apache.commons.collections4.CollectionUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class DashboardPanel extends JPanel {
+
     private final Config config;
     private ProjectsApi projectsApi;
 
@@ -128,32 +136,103 @@ public class DashboardPanel extends JPanel {
      */
     private void startUploadOriginals() {
         disableButtons();
-        progressBar.setVisible(true);
-        progressBar.setIndeterminate(true);
 
         new Thread(() -> {
+            AtomicReference<ProgressDialog> progressDialog = new AtomicReference<>();
+
             try {
                 // 执行上传同步逻辑
-                Thread.sleep(2000L);
+                UploadOriginalService service = new UploadOriginalService();
+                service.setWorkspace(config.getWorkspace());// 此处会检测工作目录，如果找不到Tools-Modern项目则抛出异常
+                service.setProjectId(config.getProjectId());
 
-                SyncService syncService = new SyncService();
-                //syncService.uploadSync(); // 假设存在此方法
+                ParatranzApiFactory factory = new ParatranzApiFactory(config);
+                FilesApi filesApi = factory.create(FilesApi.class);
+                service.setFilesApi(filesApi);
 
+                // 扫描本地文件
+                List<File> files = service.getOriginalFiles();
+                if (CollectionUtils.isEmpty(files)) {
+                    SwingUtilities.invokeLater(() -> {
+                        enableButtons();
+                        JOptionPane.showMessageDialog(this, "没有需要上传的文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                    return;
+                }
+
+                List<String> fileNames = service.getRemoteFilePaths(files);
+
+                // 创建并显示进度对话框
+                SwingUtilities.invokeAndWait(() -> {
+                    progressDialog.set(new ProgressDialog(
+                            (Frame) SwingUtilities.getWindowAncestor(DashboardPanel.this),
+                            "上传文件",
+                            fileNames
+                    ));
+                });
+
+                // 显示对话框
+                SwingUtilities.invokeLater(() -> progressDialog.get().setVisible(true));
+
+                AtomicBoolean isCancelled = progressDialog.get().getIsCancelled();
+
+                // 读取远程文件，建立缓存
+                service.fetchRemoteFiles();
+
+                // 执行上传操作
+                for (int i = 0; i < files.size(); i++) {
+                    // 检查是否已取消，如果是则跳出循环
+                    if (isCancelled.get()) {
+                        // 更新剩余文件状态为"已取消"
+                        for (int j = i; j < fileNames.size(); j++) {
+                            final int idx = j;
+                            SwingUtilities.invokeLater(() ->
+                                    progressDialog.get().updateFileStatus(idx, "已取消")
+                            );
+                        }
+                        break;
+                    }
+                    File file = files.get(i);
+                    final int index = i;
+
+                    // 更新文件状态为"进行中"
+                    SwingUtilities.invokeLater(() -> {
+                        progressDialog.get().updateFileStatus(index, "进行中");
+                    });
+
+                    try {
+                        // 执行上传
+                        String result = service.uploadFile(file);
+                        // 上传成功
+                        SwingUtilities.invokeLater(() ->
+                                progressDialog.get().updateFileStatus(index, result)
+                        );
+                    } catch (Exception e) {
+                        // 上传失败
+                        final String finalErrorMsg = e.getMessage() != null ? e.getMessage() : "未知错误";
+                        SwingUtilities.invokeLater(() ->
+                                progressDialog.get().updateFileStatus(index, "失败: " + finalErrorMsg)
+                        );
+                    }
+                }
                 // 同步完成后更新UI
                 SwingUtilities.invokeLater(() -> {
-                    progressBar.setVisible(false);
+                    progressDialog.get().onTaskFinished(); // 关闭对话框
                     enableButtons();
-                    JOptionPane.showMessageDialog(this, "上传同步完成", "成功", JOptionPane.INFORMATION_MESSAGE);
 
-                    // 同步后刷新项目信息和状态
+                    // 刷新项目信息
                     loadProjectInfo();
                     updateStatus();
                 });
             } catch (Exception e) {
                 SwingUtilities.invokeLater(() -> {
                     progressBar.setVisible(false);
+                    if (progressDialog.get() != null) {
+                        progressDialog.get().dispose();
+                    }
                     enableButtons();
-                    JOptionPane.showMessageDialog(this, "上传同步失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "上传同步失败: " + e.getMessage(),
+                            "错误", JOptionPane.ERROR_MESSAGE);
                 });
             }
         }).start();

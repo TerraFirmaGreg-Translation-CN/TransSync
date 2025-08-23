@@ -8,6 +8,7 @@ import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.files.FileUploadRespDto;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
@@ -30,20 +31,19 @@ import static io.github.tfgcn.transsync.Constants.*;
  * @author yanmaoyuan
  */
 @Slf4j
-public class ParatranzService {
+public class UploadOriginalService {
 
-    private final FilesApi filesApi;
-    private final Integer projectId;
-
+    @Setter
+    private FilesApi filesApi;
+    @Setter
+    private Integer projectId;
     @Getter
     private String workDir;
 
     private List<FilesDto> remoteFiles;
     private Map<String, FilesDto> remoteFilesMap;
 
-    public ParatranzService(FilesApi filesApi, Integer projectId) {
-        this.filesApi = filesApi;
-        this.projectId = projectId;
+    public UploadOriginalService() {
         this.remoteFiles = Collections.emptyList();
         this.remoteFilesMap = Collections.emptyMap();
     }
@@ -102,6 +102,32 @@ public class ParatranzService {
         } else {
             log.error("Failed to get files list: {}", getFilesResp.message());
         }
+    }
+
+    /**
+     * 获取待上传的文件列表
+     */
+    public List<File> getOriginalFiles() {
+        // 扫描语言文件夹下的 en_us 目录，把文本上传到 paratranz
+        List<File> fileList = Lists.newArrayListWithCapacity(100);
+        scanEnglishFiles(fileList, new File(workDir + FOLDER_TOOLS_MODERN_LANGUAGE_FILES));
+        return fileList;
+    }
+
+    public List<String> getRemoteFilePaths(List<File> fileList) {
+        if (CollectionUtils.isEmpty(fileList)) {
+            return Collections.emptyList();
+        }
+
+        List<String> fileNames = Lists.newArrayListWithCapacity(fileList.size());
+        for (File file : fileList) {
+            // 计算远程目录的路径
+            String remoteFolder = getRemoteFolder(file);
+            // 生成上传 paratranz 的最终文件名。可用于比较远程文件是否已存在
+            String zhFilePath = remoteFolder + SEPARATOR + file.getName();
+            fileNames.add(zhFilePath);
+        }
+        return fileNames;
     }
 
     /**
@@ -191,36 +217,67 @@ public class ParatranzService {
         return relativePath.indexOf(EN_US) > 0 && relativePath.endsWith(".json");
     }
 
-    public void updateFile(FilesDto existedFile, String zhFolder, File file) throws IOException, ApiException {
+    public void updateFile(FilesDto remoteFile, String remoteFolder, File file) throws IOException, ApiException {
         try (FileInputStream fis = new FileInputStream(file)) {
             String md5 = DigestUtils.md5Hex(fis);
-            if (md5.equals(existedFile.getHash())) {
-                log.info("File not modified: {}/{}", zhFolder, file.getName());
+            if (md5.equals(remoteFile.getHash())) {
+                log.info("File not modified: {}/{}", remoteFolder, file.getName());
                 return;
             }
         }
 
-        log.info("更新文件：{}/{}", zhFolder, file.getName());
+        log.info("更新文件：{}/{}", remoteFolder, file.getName());
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
                 RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
 
-        Response<FileUploadRespDto> updateResp = filesApi.updateFile(projectId, existedFile.getId(), filePart).execute();
+        Response<FileUploadRespDto> updateResp = filesApi.updateFile(projectId, remoteFile.getId(), filePart).execute();
         if (updateResp.isSuccessful()) {
             log.info("update success: {}", updateResp.body());
         }
     }
 
-    public void uploadFile(String path, File file) throws IOException, ApiException {
+    public void uploadFile(String remoteFolder, File file) throws IOException, ApiException {
 
-        log.info("上传新文件：{}/{}", path, file.getName());
+        log.info("上传新文件：{}/{}", remoteFolder, file.getName());
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
                 RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
 
-        RequestBody pathPart = RequestBody.create(path, Constants.MULTIPART_FORM_DATA);
+        RequestBody pathPart = RequestBody.create(remoteFolder, Constants.MULTIPART_FORM_DATA);
 
         Response<FileUploadRespDto> uploadResp = filesApi.uploadFile(projectId, pathPart, filePart).execute();
         if (uploadResp.isSuccessful()) {
             log.info("upload success: {}", uploadResp.body());
+        }
+    }
+
+    public String uploadFile(File file) throws IOException, ApiException {
+        // 计算远程目录的路径
+        String remoteFolder = getRemoteFolder(file);
+
+        // 生成上传 paratranz 的最终文件名。可用于比较远程文件是否已存在
+        String zhFilePath = remoteFolder + SEPARATOR + file.getName();
+
+        FilesDto remoteFile = remoteFilesMap.get(zhFilePath);
+        if (remoteFile == null) {
+            uploadFile(remoteFolder, file);
+            return "完成 - 上传新文件";
+        } else {
+            try (FileInputStream fis = new FileInputStream(file)) {
+                String md5 = DigestUtils.md5Hex(fis);
+                if (md5.equals(remoteFile.getHash())) {
+                    return "跳过 - 文件无更改";
+                }
+            }
+
+            MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
+                    RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
+
+            Response<FileUploadRespDto> updateResp = filesApi.updateFile(projectId, remoteFile.getId(), filePart).execute();
+            if (updateResp.isSuccessful()) {
+                log.info("update success: {}", updateResp.body());
+            }
+
+            return "完成 - 更新文件";
         }
     }
 }
