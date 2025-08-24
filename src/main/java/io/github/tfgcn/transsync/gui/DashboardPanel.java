@@ -226,7 +226,7 @@ public class DashboardPanel extends JPanel {
         // 弹出对话框，确认是否需要强制上传覆盖未翻译文本
         int option = JOptionPane.showConfirmDialog(this, ENSURE_FORCE_MESSAGE, ENSURE_FORCE_TITLE,
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-        Boolean force = option != JOptionPane.YES_OPTION;
+        Boolean force = option == JOptionPane.YES_OPTION;
 
         new Thread(() -> {
             AtomicReference<ProgressDialog> progressDialog = new AtomicReference<>();
@@ -292,7 +292,7 @@ public class DashboardPanel extends JPanel {
 
                     try {
                         // 执行上传
-                        String result = service.uploadTranslation(remoteFile, false);
+                        String result = service.uploadTranslation(remoteFile, force);
                         // 上传译文成功
                         SwingUtilities.invokeLater(() ->
                                 progressDialog.get().updateFileStatus(index, result)

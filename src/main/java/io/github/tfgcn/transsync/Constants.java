@@ -37,8 +37,8 @@ public final class Constants {
     public static final String DESCRIPTION = "Toolkit for sync TerraFirmaGreg Chinese translation with paratrans.cn";
     public static final int WINDOW_MIN_WIDTH = 640;
     public static final int WINDOW_MIN_HEIGHT = 500;
-    public static final int WINDOW_DEFAULT_WIDTH = 960;
-    public static final int WINDOW_DEFAULT_HEIGHT = 540;
+    public static final int WINDOW_DEFAULT_WIDTH = 1080;
+    public static final int WINDOW_DEFAULT_HEIGHT = 720;
 
     // 统计文本
     public static final String EMPTY_NAME = "未选择项目";
@@ -47,10 +47,10 @@ public final class Constants {
     public static final String EMPTY_STAT_VALUE = "0";
     public static final String EMPTY_STAT_TIP = "暂无统计数据";
 
-    public static final String ENSURE_FORCE_TITLE = "是否跳过未翻译文本?";
+    public static final String ENSURE_FORCE_TITLE = "是否强制覆盖未翻译文本?";
     public static final String ENSURE_FORCE_MESSAGE =
-            "当检测到本地译文未翻译，而 paratranz 项目将其标记为'已翻译'时，是否忽略该词条？" +
-            "选择'是'将会跳过词条，选择'否'将会强制把该词条重置为'未翻译'状态。";
+            "当检测到本地译文未翻译，而 paratranz 项目将其标记为'已翻译'时，是否覆盖该词条？" +
+            "选择'是'将强制把该词条重置为'未翻译'状态，选择'否'将跳过该词条。";
 
     public static  String formatNumber(int number) {
         return String.format("%,d", number);
