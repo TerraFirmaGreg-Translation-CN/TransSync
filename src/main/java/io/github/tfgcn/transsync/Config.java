@@ -2,10 +2,14 @@ package io.github.tfgcn.transsync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
+import io.github.tfgcn.transsync.paratranz.api.UsersApi;
 import io.github.tfgcn.transsync.paratranz.interceptor.LoggingInterceptor;
+import io.github.tfgcn.transsync.paratranz.model.users.UsersDto;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import retrofit2.Response;
 
 import java.io.File;
 import java.io.IOException;
@@ -99,5 +103,27 @@ public final class Config {
         ObjectMapper mapper = new ObjectMapper();
         mapper.writerWithDefaultPrettyPrinter();
         mapper.writeValue(file, this);
+    }
+
+    /**
+     * 检查Paratranz是否连接成功
+     * @return
+     * @throws Exception
+     */
+    public boolean checkParatranzConnected() throws Exception {
+        ParatranzApiFactory factory = new ParatranzApiFactory(this);
+        UsersApi usersApi = factory.create(UsersApi.class);
+
+        try {
+            Response<UsersDto> response = usersApi.my().execute();
+            if (response.isSuccessful()) {
+                log.info("Paratranz 登录成功: {}", response.body());
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("Paratranz 登录失败", e);
+            throw e;
+        }
+        return false;
     }
 }

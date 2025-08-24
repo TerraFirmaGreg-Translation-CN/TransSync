@@ -1,4 +1,4 @@
-package io.github.tfgcn.transsync.view;
+package io.github.tfgcn.transsync.gui;
 
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.Constants;

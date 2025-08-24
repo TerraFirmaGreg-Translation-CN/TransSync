@@ -1,9 +1,8 @@
-package io.github.tfgcn.transsync.view;
+package io.github.tfgcn.transsync.gui;
 
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
-import io.github.tfgcn.transsync.service.ConfigCheckService;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
@@ -12,7 +11,6 @@ import org.apache.commons.collections4.CollectionUtils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -23,7 +21,6 @@ import java.util.stream.Collectors;
 public class DashboardPanel extends JPanel {
 
     private final Config config;
-    private ProjectsApi projectsApi;
 
     private ProjectInfoPanel projectInfoPanel;
     private JLabel paratranzStatusLabel;
@@ -339,8 +336,7 @@ public class DashboardPanel extends JPanel {
         // 检查Paratranz连接状态
         new Thread(() -> {
             try {
-                ConfigCheckService configCheckService = new ConfigCheckService();
-                boolean paratranzConnected = configCheckService.checkParatranzConnected();
+                boolean paratranzConnected = config.checkParatranzConnected();
                 SwingUtilities.invokeLater(() ->
                         paratranzStatusLabel.setText(paratranzConnected ? "已连接" : "连接失败"));
             } catch (Exception e) {
@@ -355,8 +351,7 @@ public class DashboardPanel extends JPanel {
         new Thread(() -> {
             try {
                 if (config.getProjectId() != null) {
-                    this.projectsApi = new ParatranzApiFactory(config).create(ProjectsApi.class);
-
+                    ProjectsApi projectsApi = new ParatranzApiFactory(config).create(ProjectsApi.class);
                     ProjectsDto project = projectsApi.getProject(config.getProjectId()).execute().body();
                     SwingUtilities.invokeLater(() -> projectInfoPanel.updateProject(project));
                 }

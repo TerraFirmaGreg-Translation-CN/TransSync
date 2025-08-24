@@ -32,8 +32,25 @@ public final class Constants {
 
     public static final String TITLE = "TFG汉化同步工具";
     public static final String VERSION = "1.0.0";
+    public static final String DESCRIPTION = "Toolkit for sync TerraFirmaGreg Chinese translation with paratrans.cn";
     public static final int WINDOW_MIN_WIDTH = 640;
     public static final int WINDOW_MIN_HEIGHT = 500;
     public static final int WINDOW_DEFAULT_WIDTH = 960;
     public static final int WINDOW_DEFAULT_HEIGHT = 540;
+
+    // 统计文本
+    public static final String EMPTY_NAME = "未选择项目";
+    public static final String EMPTY_DATE = "暂无创建时间";
+    public static final String EMPTY_BADGE = "未知";
+    public static final String EMPTY_STAT_VALUE = "0";
+    public static final String EMPTY_STAT_TIP = "暂无统计数据";
+
+
+    public static  String formatNumber(int number) {
+        return String.format("%,d", number);
+    }
+
+    public static  String formatPercent(double value) {
+        return String.format("%.2f%%", value * 100);
+    }
 }

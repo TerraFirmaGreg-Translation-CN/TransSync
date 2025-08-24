@@ -40,7 +40,7 @@ import static io.github.tfgcn.transsync.Constants.*;
 @Slf4j
 public class SyncService {
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     @Setter
     private FilesApi filesApi;
@@ -97,6 +97,7 @@ public class SyncService {
      *
      */
     public List<FilesDto> fetchRemoteFiles() throws IOException, ApiException {
+        log.info("Fetching remote files...");
         // 查询已有的文件列表
         List<FilesDto> fileList = filesApi.getFiles(projectId).execute().body();
         if (CollectionUtils.isNotEmpty(fileList)) {
@@ -105,11 +106,11 @@ public class SyncService {
             for (FilesDto file : fileList) {
                 remoteFiles.add(file);
                 remoteFilesMap.put(file.getName(), file);
-                log.info("Remote file: {}", file.getName());
+                log.info("{}", file.getName());
             }
-            log.info("Found {} remote files", fileList.size());
+            log.info("Found remote files: {}", fileList.size());
         } else {
-            log.info("No files found");
+            log.info("No remote files found");
             remoteFilesMap = Collections.emptyMap();
             remoteFiles = Collections.emptyList();
         }
@@ -149,11 +150,12 @@ public class SyncService {
         // 扫描远程服务器上已有的文件
         fetchRemoteFiles();
 
+        log.info("Scanning language files in: {}", FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
         // 扫描语言文件夹下的 en_us 目录，把文本上传到 paratranz
         List<File> fileList = Lists.newArrayListWithCapacity(100);
         scanEnglishFiles(fileList, new File(workDir + FOLDER_TOOLS_MODERN_LANGUAGE_FILES));
 
-        log.info("Found {} files from {}", fileList.size(), FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
+        log.info("Found files: {}", fileList.size());
         for (File file : fileList) {
             // 计算远程目录的路径
             String remoteFolder = getRemoteFolder(file);
@@ -232,24 +234,23 @@ public class SyncService {
         try (FileInputStream fis = new FileInputStream(file)) {
             String md5 = DigestUtils.md5Hex(fis);
             if (md5.equals(remoteFile.getHash())) {
-                log.info("File not modified: {}/{}", remoteFolder, file.getName());
+                log.info("[Not modified] {}/{}", remoteFolder, file.getName());
                 return;
             }
         }
 
-        log.info("更新文件：{}/{}", remoteFolder, file.getName());
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
                 RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
 
         Response<FileUploadRespDto> updateResp = filesApi.updateFile(projectId, remoteFile.getId(), filePart).execute();
         if (updateResp.isSuccessful()) {
-            log.info("update success: {}", updateResp.body());
+            log.info("[Updated] {}/{}", remoteFolder, file.getName());
         }
     }
 
     public void uploadFile(String remoteFolder, File file) throws IOException, ApiException {
 
-        log.info("上传新文件：{}/{}", remoteFolder, file.getName());
+        log.info("[NEW] {}/{}", remoteFolder, file.getName());
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
                 RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
 
@@ -271,12 +272,12 @@ public class SyncService {
         FilesDto remoteFile = remoteFilesMap.get(zhFilePath);
         if (remoteFile == null) {
             uploadFile(remoteFolder, file);
-            return "完成 - 上传新文件";
+            return "完成 - 新文件";
         } else {
             try (FileInputStream fis = new FileInputStream(file)) {
                 String md5 = DigestUtils.md5Hex(fis);
                 if (md5.equals(remoteFile.getHash())) {
-                    return "跳过 - 文件无更改";
+                    return "跳过 - 未更新";
                 }
             }
 
@@ -288,7 +289,7 @@ public class SyncService {
                 log.info("update success: {}", updateResp.body());
             }
 
-            return "完成 - 更新文件";
+            return "完成 - 已更新";
         }
     }
 

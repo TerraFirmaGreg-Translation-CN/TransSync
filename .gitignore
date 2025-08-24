@@ -5,6 +5,7 @@ target/
 
 ### IntelliJ IDEA ###
 .idea/
+.run/
 *.iws
 *.iml
 *.ipr
@@ -47,3 +48,4 @@ logs/
 config.json
 /test/
 tmp
+*.jar

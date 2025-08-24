@@ -1,4 +1,4 @@
-package io.github.tfgcn.transsync.view;
+package io.github.tfgcn.transsync.gui;
 
 import javax.swing.*;
 import java.io.IOException;

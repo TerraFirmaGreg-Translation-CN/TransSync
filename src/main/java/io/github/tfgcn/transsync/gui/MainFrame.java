@@ -1,4 +1,4 @@
-package io.github.tfgcn.transsync.view;
+package io.github.tfgcn.transsync.gui;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import io.github.tfgcn.transsync.Config;
@@ -111,7 +111,7 @@ public class MainFrame extends JFrame {
     
     private void showAboutDialog() {
         JOptionPane.showMessageDialog(this,
-            TITLE + "\n版本 " + VERSION,
+            TITLE + " "+ VERSION + "\n" + DESCRIPTION,
             "关于",
             JOptionPane.INFORMATION_MESSAGE);
     }

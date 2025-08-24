@@ -1,4 +1,4 @@
-package io.github.tfgcn.transsync.view;
+package io.github.tfgcn.transsync.gui;
 
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 
@@ -8,6 +8,8 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+
+import static io.github.tfgcn.transsync.Constants.*;
 
 public class ProjectInfoPanel extends JPanel {
     private ProjectsDto project;
@@ -35,13 +37,6 @@ public class ProjectInfoPanel extends JPanel {
     // 核心组件引用（用于动态更新）
     private JPanel contentPanel;
     private JScrollPane scrollPane;
-
-    // 空状态占位文本（统一管理）
-    private static final String EMPTY_NAME = "未选择项目";
-    private static final String EMPTY_DATE = "暂无创建时间";
-    private static final String EMPTY_BADGE = "未知";
-    private static final String EMPTY_STAT_VALUE = "0";
-    private static final String EMPTY_STAT_TIP = "暂无统计数据";
 
     public ProjectInfoPanel(ProjectsDto project) {
         this.project = project;
@@ -312,14 +307,6 @@ public class ProjectInfoPanel extends JPanel {
         if (date == null) return EMPTY_DATE.replace("暂无", "");
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日 HH:mm");
         return sdf.format(date);
-    }
-
-    private String formatNumber(int number) {
-        return String.format("%,d", number);
-    }
-
-    private String formatPercent(double value) {
-        return String.format("%.2f%%", value * 100);
     }
 
 }
