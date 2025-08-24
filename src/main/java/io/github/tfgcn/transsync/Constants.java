@@ -20,7 +20,9 @@ public final class Constants {
     public static final String EN_US = "en_us";
     public static final String ZH_CN = "zh_cn";
 
-    public static final String FOLDER_TOOLS_MODERN_LANGUAGE_FILES = "/Tools-Modern/LanguageMerger/LanguageFiles";
+    public static final String FOLDER_TOOLS_MODERN = "Tools-Modern";
+    public static final String FOLDER_TOOLS_MODERN_LANGUAGE_FILES = "Tools-Modern/LanguageMerger/LanguageFiles";
+    public static final String FOLDER_MODPACK_MODERN = "Modpack-Modern";
 
     public static final String MSG_FOLDER_NOT_FOUND = "找不到目录";
     public static final String MSG_FOLDER_INVALID = "非法目录";

@@ -107,20 +107,19 @@ public final class Config {
 
     /**
      * 检查Paratranz是否连接成功
-     * @return
-     * @throws Exception
+     * @return true表示连接成功，false表示连接失败
+     * @throws IOException
      */
-    public boolean checkParatranzConnected() throws Exception {
+    public boolean checkParatranzConnected() throws IOException {
         ParatranzApiFactory factory = new ParatranzApiFactory(this);
         UsersApi usersApi = factory.create(UsersApi.class);
-
         try {
             Response<UsersDto> response = usersApi.my().execute();
             if (response.isSuccessful()) {
                 log.info("Paratranz 登录成功: {}", response.body());
                 return true;
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             log.error("Paratranz 登录失败", e);
             throw e;
         }

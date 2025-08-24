@@ -23,44 +23,15 @@ import static io.github.tfgcn.transsync.Constants.*;
  * @author yanmaoyuan
  */
 @Slf4j
-@CommandLine.Command(name = "upload-origin", mixinStandardHelpOptions = true, version = Constants.VERSION, description ="Upload original file to paratranz.")
-public class UploadOriginCommand implements Callable<Integer> {
-
-    @CommandLine.Option(names = {"-t", "--token"}, description = "Paratranz Token。前往 https://paratranz.cn/users/my 点击设置获取，并保存到 config.json 配置文件中")
-    private String token;
-
-    @CommandLine.Option(names = {"-p", "--project-id"}, description = "Paratranz 项目ID.")
-    private Integer projectId;
-
-    @CommandLine.Option(names = {"-w", "--workspace"}, description = "工作目录，Tools-Modern 项目应位于此目录下。", defaultValue = Constants.DEFAULT_WORKSPACE)
-    private String workspace;
-
-    @CommandLine.Option(names = {"-l", "--http-level"}, description = "HTTP日志等级. [NONE, BASIC, HEADERS, BODY]")
-    private LoggingInterceptor.Level httpLogLevel;
+@CommandLine.Command(name = "upload-origin", mixinStandardHelpOptions = true, version = Constants.VERSION,
+        description ="Upload original file to paratranz.")
+public class UploadOriginCommand extends BaseCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        Config config = Config.getInstance();
-
-        if (token != null) {
-            config.setToken(token);
-            boolean connected = config.checkParatranzConnected();
-            if (!connected) {
-                log.error(Constants.MSG_TOKEN_NOT_EXISTS);
-                return 1;
-            }
-        }
-
-        if (projectId != null) {
-            config.setProjectId(projectId);
-        }
-
-        if (workspace != null) {
-            config.setWorkspace(workspace);
-        }
-
-        if (httpLogLevel != null) {
-            config.setHttpLogLevel(httpLogLevel.name());
+        Config config = initConfig();
+        if (config == null) {
+            return 1;
         }
 
         ParatranzApiFactory factory = new ParatranzApiFactory(config);
@@ -81,12 +52,15 @@ public class UploadOriginCommand implements Callable<Integer> {
         app.setFilesApi(filesApi);
         app.setProjectId(config.getProjectId());
         app.setWorkspace(config.getWorkspace());
+
+        // 执行上传
         app.uploadOriginals();
 
         log.info("Done.");
 
         // 查询统计结果
         projectsDto = projectsApi.getProject(config.getProjectId()).execute().body();
+        assert projectsDto != null;
         Map<String, Object> stats = projectsDto.getStats();
 
 

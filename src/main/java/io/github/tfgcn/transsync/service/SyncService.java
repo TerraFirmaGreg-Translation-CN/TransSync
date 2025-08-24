@@ -5,11 +5,10 @@ import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import io.github.tfgcn.transsync.Constants;
 import io.github.tfgcn.transsync.paratranz.error.ApiException;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
+import io.github.tfgcn.transsync.paratranz.model.StageEnum;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.files.FileUploadRespDto;
 import io.github.tfgcn.transsync.paratranz.model.files.TranslationDto;
@@ -26,9 +25,7 @@ import retrofit2.Response;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static io.github.tfgcn.transsync.Constants.*;
 
@@ -84,12 +81,11 @@ public class SyncService {
         log.info("set workdir to:{}", workDir);
 
         // check language folder exists
-        File languageFolder = new File(workDir + FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
+        File languageFolder = new File(workDir + SEPARATOR + FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
         if (!languageFolder.exists()) {
             log.warn("folder not found: {}", languageFolder);
-            throw new IOException(Constants.MSG_FOLDER_NOT_FOUND + ":" + languageFolder);
+            throw new IOException(Constants.MSG_FOLDER_NOT_FOUND + ":" + FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
         }
-
     }
 
     /**
@@ -101,12 +97,12 @@ public class SyncService {
         // 查询已有的文件列表
         List<FilesDto> fileList = filesApi.getFiles(projectId).execute().body();
         if (CollectionUtils.isNotEmpty(fileList)) {
-            remoteFiles = Lists.newArrayListWithCapacity(fileList.size());
-            remoteFilesMap = Maps.newHashMap();
+            remoteFiles = new ArrayList<>(fileList.size());
+            remoteFilesMap = new HashMap<>();
             for (FilesDto file : fileList) {
                 remoteFiles.add(file);
                 remoteFilesMap.put(file.getName(), file);
-                log.info("{}", file.getName());
+                log.debug("{}", file.getName());
             }
             log.info("Found remote files: {}", fileList.size());
         } else {
@@ -122,8 +118,8 @@ public class SyncService {
      */
     public List<File> getOriginalFiles() {
         // 扫描语言文件夹下的 en_us 目录，把文本上传到 paratranz
-        List<File> fileList = Lists.newArrayListWithCapacity(100);
-        scanEnglishFiles(fileList, new File(workDir + FOLDER_TOOLS_MODERN_LANGUAGE_FILES));
+        List<File> fileList = new ArrayList<>(100);
+        scanEnglishFiles(fileList, new File(workDir + SEPARATOR + FOLDER_TOOLS_MODERN_LANGUAGE_FILES));
         return fileList;
     }
 
@@ -132,7 +128,7 @@ public class SyncService {
             return Collections.emptyList();
         }
 
-        List<String> fileNames = Lists.newArrayListWithCapacity(fileList.size());
+        List<String> fileNames = new ArrayList<>(fileList.size());
         for (File file : fileList) {
             // 计算远程目录的路径
             String remoteFolder = getRemoteFolder(file);
@@ -152,8 +148,8 @@ public class SyncService {
 
         log.info("Scanning language files in: {}", FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
         // 扫描语言文件夹下的 en_us 目录，把文本上传到 paratranz
-        List<File> fileList = Lists.newArrayListWithCapacity(100);
-        scanEnglishFiles(fileList, new File(workDir + FOLDER_TOOLS_MODERN_LANGUAGE_FILES));
+        List<File> fileList = new ArrayList<>(100);
+        scanEnglishFiles(fileList, new File(workDir + SEPARATOR + FOLDER_TOOLS_MODERN_LANGUAGE_FILES));
 
         log.info("Found files: {}", fileList.size());
         for (File file : fileList) {
@@ -240,7 +236,7 @@ public class SyncService {
         }
 
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
-                RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
+                RequestBody.create(Constants.MULTIPART_FORM_DATA, file));
 
         Response<FileUploadRespDto> updateResp = filesApi.updateFile(projectId, remoteFile.getId(), filePart).execute();
         if (updateResp.isSuccessful()) {
@@ -252,9 +248,9 @@ public class SyncService {
 
         log.info("[NEW] {}/{}", remoteFolder, file.getName());
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
-                RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
+                RequestBody.create(Constants.MULTIPART_FORM_DATA, file));
 
-        RequestBody pathPart = RequestBody.create(remoteFolder, Constants.MULTIPART_FORM_DATA);
+        RequestBody pathPart = RequestBody.create(Constants.MULTIPART_FORM_DATA, remoteFolder);
 
         Response<FileUploadRespDto> uploadResp = filesApi.uploadFile(projectId, pathPart, filePart).execute();
         if (uploadResp.isSuccessful()) {
@@ -262,6 +258,14 @@ public class SyncService {
         }
     }
 
+    /**
+     * 上传原始文件
+     * 这个接口是给GUI用的，返回结果用于界面展示。
+     * @param file
+     * @return
+     * @throws IOException
+     * @throws ApiException
+     */
     public String uploadOriginalFile(File file) throws IOException, ApiException {
         // 计算远程目录的路径
         String remoteFolder = getRemoteFolder(file);
@@ -282,7 +286,7 @@ public class SyncService {
             }
 
             MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
-                    RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
+                    RequestBody.create(Constants.MULTIPART_FORM_DATA, file));
 
             Response<FileUploadRespDto> updateResp = filesApi.updateFile(projectId, remoteFile.getId(), filePart).execute();
             if (updateResp.isSuccessful()) {
@@ -293,22 +297,84 @@ public class SyncService {
         }
     }
 
+    /**
+     * 下载远程文件
+     * @throws IOException
+     * @throws ApiException
+     */
+    public void downloadTranslations() throws IOException, ApiException {
+        // 扫描远程文件文件
+        List<FilesDto> remoteFiles = fetchRemoteFiles();
+
+        // 执行上传操作
+        for (FilesDto remoteFile : remoteFiles) {
+            List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
+            if (CollectionUtils.isEmpty(translations)) {
+                log.info("缺少翻译: {}", remoteFile.getName());
+            } else {
+                saveTranslations(remoteFile, translations);
+            }
+        }
+    }
+
     public String downloadTranslation(FilesDto remoteFile) throws IOException, ApiException {
         List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
+        if (CollectionUtils.isEmpty( translations)) {
+            return "跳过 - 无翻译";
+        }
 
-        Map<String, String> obj = Maps.newLinkedHashMap();
-        for (TranslationDto translation : translations) {
-            if (StringUtils.isNotBlank(translation.getTranslation())) {
-                obj.put(translation.getKey(), translation.getTranslation());
+        saveTranslations(remoteFile, translations);
+        return "完成";
+    }
+
+    /**
+     * 保存译文到文件
+     *
+     * @param remoteFile 源文件
+     * @param translations 翻译结果
+     * @throws IOException 保存失败时抛出
+     */
+    public void saveTranslations(FilesDto remoteFile, List<TranslationDto> translations) throws IOException {
+        // 创建一个 Map 用于存储翻译结果，使用 LinkedHashMap 保持插入顺序。
+        Map<String, String> map = new LinkedHashMap<>();
+        for (TranslationDto item : translations) {
+            StageEnum stage = StageEnum.of(item.getStage());
+            if (stage == StageEnum.HIDDEN || stage == StageEnum.UNTRANSLATED) {
+                map.put(item.getKey(), item.getOriginal());
             } else {
-                obj.put(translation.getKey(), translation.getOriginal());
+                map.put(item.getKey(), item.getTranslation());
             }
         }
 
-        File file = new File(workDir + "/" + remoteFile.getName());
-        file.getParentFile().mkdirs();
-        log.info("download success, file:{}", file.getAbsolutePath());
-        objectMapper.writeValue(file, obj);
-        return "完成";
+        String relativePath = remoteFile.getName();
+        String absolutePath = workDir + SEPARATOR + relativePath;
+        File file = new File(absolutePath);
+
+        // 检测父目录是否存在，不存在则创建
+        File parentDir = file.getParentFile();
+        if (!parentDir.exists() && !parentDir.mkdirs()) {
+            log.warn("创建目录失败: {}", parentDir.getAbsolutePath());
+            throw new IOException("创建目录失败: " + parentDir.getAbsolutePath());
+        }
+
+        if (file.exists()) {
+            // 文件存在
+            String body = objectMapper.writeValueAsString(map);
+            // 比较文件内容是否更新
+            try (FileInputStream fis = new FileInputStream(file)) {
+                String md5 = DigestUtils.md5Hex(fis);
+                String downloadMd5 = DigestUtils.md5Hex(body);
+                if (md5.equals(downloadMd5)) {
+                    log.info("文件未更新: {}", relativePath);
+                } else {
+                    objectMapper.writeValue(file, map);
+                    log.info("文件已更新: {}", relativePath);
+                }
+            }
+        } else {
+            // 文件不存在，直接写入
+            objectMapper.writeValue(file, map);
+            log.info("文件已保存: {}", relativePath);
+        }
     }
 }

@@ -131,7 +131,7 @@ public class DashboardPanel extends JPanel {
 
                 // 扫描远程文件文件
                 List<FilesDto> remoteFiles = service.fetchRemoteFiles();
-                List<String> fileNames = remoteFiles.stream().map(FilesDto::getName).collect(Collectors.toList());
+                List<String> fileNames = remoteFiles.stream().map(FilesDto::getName).toList();
 
                 // 创建并显示进度对话框
                 SwingUtilities.invokeAndWait(() -> {
@@ -146,9 +146,6 @@ public class DashboardPanel extends JPanel {
                 SwingUtilities.invokeLater(() -> progressDialog.get().setVisible(true));
 
                 AtomicBoolean isCancelled = progressDialog.get().getIsCancelled();
-
-                // 读取远程文件，建立缓存
-                service.fetchRemoteFiles();
 
                 // 执行上传操作
                 for (int i = 0; i < remoteFiles.size(); i++) {

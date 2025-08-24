@@ -2,6 +2,11 @@ package io.github.tfgcn.transsync.paratranz.model;
 
 import lombok.Getter;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * desc: 词条状态
  *
@@ -25,12 +30,16 @@ public enum StageEnum {
         this.desc = desc;
     }
 
-    public static StageEnum fromValue(Integer value) {
+    public static final Map<Integer, StageEnum> CACHE;
+    static {
+        Map<Integer, StageEnum> map = new HashMap<>();
         for (StageEnum stage : StageEnum.values()) {
-            if (stage.value.equals(value)) {
-                return stage;
-            }
+            map.put(stage.value, stage);
         }
-        return null;
+        CACHE = Collections.unmodifiableMap(map);// immutable
+    }
+
+    public static StageEnum of(Integer value) {
+        return CACHE.get(value);
     }
 }

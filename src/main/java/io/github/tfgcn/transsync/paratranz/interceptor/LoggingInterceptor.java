@@ -79,7 +79,7 @@ public class LoggingInterceptor implements Interceptor {
                 String name = headers.name(i);
                 // 敏感信息（如认证头）进行脱敏处理
                 String value = "Authorization".equalsIgnoreCase(name) ? "****" : headers.value(i);
-                logger.debug("{}: {}", name, value);
+                logger.info("{}: {}", name, value);
             }
 
             if (level == Level.BODY && request.body() != null) {

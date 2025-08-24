@@ -1,9 +1,8 @@
 package io.github.tfgcn.transsync.paratranz.model.strings;
 
-import com.google.common.collect.Maps;
 import lombok.Data;
-import org.apache.commons.collections4.MapUtils;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -19,7 +18,7 @@ public class GetStringsReqDto {
     private Integer stage;// 筛选词条状态 默认0. Available values : 0, 1, 2, 3, 5, 9, -1
 
     public Map<String, Object> asMap() {
-        Map<String, Object> map = Maps.newHashMap();
+        Map<String, Object> map = new HashMap<>();
         if (page != null) {
             map.put("page", page);
         }

@@ -16,10 +16,9 @@
 
         <!-- dependency versions -->
         <flatlaf.version>3.6.1</flatlaf.version>
-        <jgit.version>7.3.0.202506031305-r</jgit.version>
         <picocli.version>4.7.1</picocli.version>
-        <okhttp.version>4.12.0</okhttp.version>
-        <retrofit.version>3.0.0</retrofit.version>
+        <okhttp.version>3.14.9</okhttp.version>
+        <retrofit.version>2.9.0</retrofit.version>
         <jackson.version>2.19.2</jackson.version>
         <guava.version>33.4.8-jre</guava.version>
         <lombok.version>1.18.38</lombok.version>
@@ -38,11 +37,6 @@
                 <groupId>com.formdev</groupId>
                 <artifactId>flatlaf</artifactId>
                 <version>${flatlaf.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.jgit</groupId>
-                <artifactId>org.eclipse.jgit</artifactId>
-                <version>${jgit.version}</version>
             </dependency>
             <dependency>
                 <groupId>info.picocli</groupId>
@@ -129,11 +123,6 @@
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
         </dependency>
-        <!-- Git -->
-        <dependency>
-            <groupId>org.eclipse.jgit</groupId>
-            <artifactId>org.eclipse.jgit</artifactId>
-        </dependency>
         <!-- 命令行工具 -->
         <dependency>
             <groupId>info.picocli</groupId>
@@ -162,12 +151,9 @@
         </dependency>
         <!-- common library -->
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -203,9 +189,27 @@
     </dependencies>
 
     <build>
-        <finalName>transsync</finalName>
+        <finalName>transsync-${project.version}</finalName>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>3.3.0</version>

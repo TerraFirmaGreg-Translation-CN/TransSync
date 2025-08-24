@@ -96,7 +96,7 @@ class FilesApiTest {
             log.info("更新文件：{}", TEST_FILE);
             // 注意，上传的文件名采用 TEST_FILE
             MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", TEST_FILE,
-                    RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
+                    RequestBody.create(Constants.MULTIPART_FORM_DATA, file));
 
             Response<FileUploadRespDto> resp = filesApi.updateFile(PROJECT_ID, fileId, filePart).execute();
             Assertions.assertTrue(resp.isSuccessful());
@@ -107,10 +107,10 @@ class FilesApiTest {
         } else {
             // 注意，上传的文件名采用 TEST_FILE
             MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", TEST_FILE,
-                    RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
+                    RequestBody.create(Constants.MULTIPART_FORM_DATA, file));
 
             // 创建描述部分
-            RequestBody pathPart = RequestBody.create(TEST_FOLDER, Constants.MULTIPART_FORM_DATA);
+            RequestBody pathPart = RequestBody.create(Constants.MULTIPART_FORM_DATA, TEST_FOLDER);
 
             Response<FileUploadRespDto> resp = filesApi.uploadFile(PROJECT_ID, pathPart, filePart).execute();
 
@@ -169,7 +169,7 @@ class FilesApiTest {
 
         File file = getOrCreateTestFile(TEST_ZH_FILE, TEST_ZH_CONTENT);
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", TEST_FILE,
-                RequestBody.create(file, Constants.MULTIPART_FORM_DATA));
+                RequestBody.create(Constants.MULTIPART_FORM_DATA, file));
         Response<FileUploadRespDto> updateResp = filesApi.updateTranslate(PROJECT_ID, fileId, filePart, false).execute();
         Assertions.assertTrue(updateResp.isSuccessful());
         Assertions.assertNotNull(updateResp.body());
