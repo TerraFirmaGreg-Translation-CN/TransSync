@@ -14,7 +14,6 @@ public class ProjectInfoPanel extends JPanel {
 
     // 颜色常量（保留原定义）
     private static final Color BACKGROUND_COLOR = new Color(245, 247, 250);
-    private static final Color CARD_COLOR = Color.WHITE;
     private static final Color PRIMARY_COLOR = new Color(66, 133, 244);
     private static final Color SECONDARY_COLOR = new Color(112, 117, 122);
     private static final Color ACCENT_COLOR = new Color(24, 128, 56);
@@ -23,7 +22,6 @@ public class ProjectInfoPanel extends JPanel {
 
     // 字体常量（保留原定义）
     private static final Font TITLE_FONT = new Font("SansSerif", Font.BOLD, 22);
-    private static final Font SECTION_FONT = new Font("SansSerif", Font.BOLD, 16);
     private static final Font LABEL_FONT = new Font("SansSerif", Font.PLAIN, 14);
     private static final Font VALUE_FONT = new Font("SansSerif", Font.BOLD, 14);
     private static final Font SMALL_FONT = new Font("SansSerif", Font.PLAIN, 12);
@@ -31,7 +29,7 @@ public class ProjectInfoPanel extends JPanel {
 
     // 固定尺寸配置（可根据需求调整）
     private static final int FIXED_WIDTH = 600;  // 固定宽度
-    private static final int FIXED_HEIGHT = 450; // 固定高度
+    private static final int FIXED_HEIGHT = 340; // 固定高度
     private static final int PROGRESS_BAR_WIDTH = 250; // 统计进度条宽度（支持拉伸）
 
     // 核心组件引用（用于动态更新）

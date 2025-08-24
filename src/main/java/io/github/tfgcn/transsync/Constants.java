@@ -30,4 +30,10 @@ public final class Constants {
 
     public static final MediaType MULTIPART_FORM_DATA = MediaType.parse("multipart/form-data");
 
+    public static final String TITLE = "TFG汉化同步工具";
+    public static final String VERSION = "1.0.0";
+    public static final int WINDOW_MIN_WIDTH = 640;
+    public static final int WINDOW_MIN_HEIGHT = 500;
+    public static final int WINDOW_DEFAULT_WIDTH = 960;
+    public static final int WINDOW_DEFAULT_HEIGHT = 540;
 }

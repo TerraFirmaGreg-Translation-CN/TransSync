@@ -8,6 +8,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 
+import static io.github.tfgcn.transsync.Constants.*;
+
 @Slf4j
 public class MainFrame extends JFrame {
     private final Config config;
@@ -25,9 +27,10 @@ public class MainFrame extends JFrame {
     }
     
     private void initComponents() {
-        setTitle("Paratranz 同步工具");
+        setTitle(TITLE);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 600);
+        setMinimumSize(new Dimension(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT));
+        setSize(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT);
         setLocationRelativeTo(null); // 居中显示
         
         // 设置现代外观
@@ -108,7 +111,7 @@ public class MainFrame extends JFrame {
     
     private void showAboutDialog() {
         JOptionPane.showMessageDialog(this,
-            "Paratranz 同步工具\n版本 1.0.0",
+            TITLE + "\n版本 " + VERSION,
             "关于",
             JOptionPane.INFORMATION_MESSAGE);
     }

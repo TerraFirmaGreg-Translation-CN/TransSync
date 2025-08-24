@@ -1,7 +1,6 @@
 package io.github.tfgcn.transsync.view;
 
 import lombok.Getter;
-import lombok.Setter;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,13 +20,13 @@ public class ProgressDialog extends JDialog {
     private static final Color BUTTON_TEXT_COLOR = Color.WHITE;              // 按钮文字白色
 
     @Getter
-    private AtomicBoolean isCancelled;// 用于标记是否需要终止任务
+    private final AtomicBoolean isCancelled;// 用于标记是否需要终止任务
     private boolean isCompleted;// 用于标记任务是否完成
 
     private JTable progressTable;
     private DefaultTableModel tableModel;
     private JProgressBar overallProgress;
-    private int totalFiles;
+    private final int totalFiles;
     @Getter
     private int completedFiles;
     private JButton cancelButton;
@@ -89,7 +88,7 @@ public class ProgressDialog extends JDialog {
         progressTable.setRowHeight(25);
 
         JScrollPane scrollPane = new JScrollPane(progressTable);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("文件上传状态"));
+        scrollPane.setBorder(BorderFactory.createTitledBorder("文件状态"));
         mainPanel.add(scrollPane, BorderLayout.CENTER); // 表格占满中间区域
 
 
@@ -101,7 +100,7 @@ public class ProgressDialog extends JDialog {
 
         // 2.1 进度条面板（包含进度条和计数文本）
         JPanel progressPanel = new JPanel(new BorderLayout(10, 0));
-        progressPanel.setBorder(BorderFactory.createTitledBorder("总体进度")); // 进度条标题边框
+        progressPanel.setBorder(BorderFactory.createTitledBorder("进度")); // 进度条标题边框
 
         // 进度条优化：启用百分比文本，设置高度
         overallProgress = new JProgressBar(0, totalFiles);
