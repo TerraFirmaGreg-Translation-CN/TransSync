@@ -2,6 +2,7 @@ package io.github.tfgcn.transsync.gui;
 
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
+import io.github.tfgcn.transsync.paratranz.api.StringsApi;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
@@ -213,9 +214,109 @@ public class DashboardPanel extends JPanel {
         }).start();
     }
 
+    /**
+     * 上传译文逻辑
+     */
     public void startUploadTranslations() {
-        // 暂不支持
-        JOptionPane.showMessageDialog(this, "暂不支持上传译文", "错误", JOptionPane.ERROR_MESSAGE);
+        disableButtons();
+
+        new Thread(() -> {
+            AtomicReference<ProgressDialog> progressDialog = new AtomicReference<>();
+
+            try {
+                // 执行上传同步逻辑
+                SyncService service = new SyncService();
+                service.setWorkspace(config.getWorkspace());// 此处会检测工作目录，如果找不到Tools-Modern项目则抛出异常
+                service.setProjectId(config.getProjectId());
+
+                ParatranzApiFactory factory = new ParatranzApiFactory(config);
+                FilesApi filesApi = factory.create(FilesApi.class);
+                StringsApi stringsApi = factory.create(StringsApi.class);
+                service.setFilesApi(filesApi);
+                service.setStringsApi(stringsApi);
+
+                // 扫描远程文件文件
+                List<FilesDto> remoteFiles = service.fetchRemoteFiles();
+                if (CollectionUtils.isEmpty(remoteFiles)) {
+                    SwingUtilities.invokeLater(() -> {
+                        enableButtons();
+                        JOptionPane.showMessageDialog(this, "没有需要上传的文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                    return;
+                }
+
+                List<String> fileNames = remoteFiles.stream().map(FilesDto::getName).toList();
+
+                // 创建并显示进度对话框
+                SwingUtilities.invokeAndWait(() -> {
+                    progressDialog.set(new ProgressDialog(
+                            (Frame) SwingUtilities.getWindowAncestor(DashboardPanel.this),
+                            "上传译文",
+                            fileNames
+                    ));
+                });
+
+                // 显示对话框
+                SwingUtilities.invokeLater(() -> progressDialog.get().setVisible(true));
+
+                AtomicBoolean isCancelled = progressDialog.get().getIsCancelled();
+
+                // 执行上传操作
+                for (int i = 0; i < remoteFiles.size(); i++) {
+                    // 检查是否已取消，如果是则跳出循环
+                    if (isCancelled.get()) {
+                        // 更新剩余文件状态为"已取消"
+                        for (int j = i; j < fileNames.size(); j++) {
+                            final int idx = j;
+                            SwingUtilities.invokeLater(() ->
+                                    progressDialog.get().updateFileStatus(idx, "已取消")
+                            );
+                        }
+                        break;
+                    }
+                    FilesDto remoteFile = remoteFiles.get(i);
+                    final int index = i;
+
+                    // 更新文件状态为"进行中"
+                    SwingUtilities.invokeLater(() -> {
+                        progressDialog.get().updateFileStatus(index, "进行中");
+                    });
+
+                    try {
+                        // 执行上传
+                        String result = service.uploadTranslation(remoteFile, false);
+                        // 上传译文成功
+                        SwingUtilities.invokeLater(() ->
+                                progressDialog.get().updateFileStatus(index, result)
+                        );
+                    } catch (Exception ex) {
+                        // 上传译文失败
+                        final String finalErrorMsg = ex.getMessage() != null ? ex.getMessage() : "未知错误";
+                        SwingUtilities.invokeLater(() ->
+                                progressDialog.get().updateFileStatus(index, "失败: " + finalErrorMsg)
+                        );
+                    }
+                }
+                // 同步完成后更新UI
+                SwingUtilities.invokeLater(() -> {
+                    progressDialog.get().onTaskFinished(); // 关闭对话框
+                    enableButtons();
+
+                    // 刷新项目信息
+                    loadProjectInfo();
+                    updateStatus();
+                });
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() -> {
+                    if (progressDialog.get() != null) {
+                        progressDialog.get().dispose();
+                    }
+                    enableButtons();
+                    JOptionPane.showMessageDialog(this, "上传译文失败: " + e.getMessage(),
+                            "错误", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
     }
 
     /**

@@ -398,68 +398,79 @@ public class SyncService {
         }
 
         for (FilesDto remoteFile : remoteFiles) {
-            String relativePath = remoteFile.getName();
-            String absolutePath = workDir + SEPARATOR + relativePath;
-            File file = new File(absolutePath);
-            if (!file.exists() || !file.isFile()) {
-                log.info("文件不存在: {}", relativePath);
+            uploadTranslation(remoteFile, force);
+        }
+    }
+
+    public String uploadTranslation(FilesDto remoteFile, Boolean force) throws IOException, ApiException {
+        String relativePath = remoteFile.getName();
+        String absolutePath = workDir + SEPARATOR + relativePath;
+        File file = new File(absolutePath);
+        if (!file.exists() || !file.isFile()) {
+            log.info("文件不存在: {}", relativePath);
+            return "失败 - 文件不存在";
+        }
+
+        // 读取远程译文
+        List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
+        if (CollectionUtils.isEmpty(translations)) {
+            log.info("没有远程译文: {}", relativePath);
+            return "跳过 - 无需翻译";
+        }
+
+        // 读取本地汉化文件
+        Map<String, String> map = objectMapper.readValue(file, new TypeReference<>() {
+        });
+
+        int count = 0;// 处理词条数
+        for (TranslationDto item : translations) {
+            String key = item.getKey();
+            StageEnum stage = StageEnum.of(item.getStage());
+            if (stage == StageEnum.HIDDEN) {
+                // 隐藏词条，不翻译
                 continue;
             }
 
-            // 读取远程译文
-            List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
-            if (CollectionUtils.isEmpty(translations)) {
-                log.info("没有远程译文: {}", relativePath);
-                continue;
-            }
+            if (map.containsKey(key)) {
+                String value = map.get(key);
+                if (value.equals(item.getOriginal())) {
+                    // 译文和原文相同，属于未翻译内容。
+                    if (stage != StageEnum.UNTRANSLATED && Boolean.TRUE.equals(force)) {
+                        // 强制标记为未翻译
+                        StringItem stringItem = new StringItem();
+                        stringItem.setKey(key);
+                        stringItem.setOriginal(item.getOriginal());
+                        stringItem.setTranslation(value);
+                        stringItem.setStage(StageEnum.UNTRANSLATED.getValue());
+                        stringItem.setContext(item.getContext());
 
-            // 读取本地汉化文件
-            Map<String, String> map = objectMapper.readValue(file, new TypeReference<>() {
-            });
-
-            for (TranslationDto item : translations) {
-                String key = item.getKey();
-                StageEnum stage = StageEnum.of(item.getStage());
-                if (stage == StageEnum.HIDDEN) {
-                    // 隐藏词条，不翻译
-                    //log.debug("跳过隐藏词条: {}", key);
-                    continue;
-                }
-
-                if (map.containsKey(key)) {
-                    String value = map.get(key);
-                    if (value.equals(item.getOriginal())) {
-                        // 译文和原文相同，属于未翻译内容。
-                        if (stage != StageEnum.UNTRANSLATED && Boolean.TRUE.equals(force)) {
-                            // 强制标记为未翻译
-                            StringItem stringItem = new StringItem();
-                            stringItem.setKey(key);
-                            stringItem.setOriginal(item.getOriginal());
-                            stringItem.setTranslation(value);
-                            stringItem.setStage(StageEnum.UNTRANSLATED.getValue());
-                            stringItem.setContext(item.getContext());
-
-                            stringsApi.updateString(projectId, item.getId(), stringItem).execute();
-                            log.debug("重置为未翻译, key:{} , stage:{}", key, stage.getDesc());
-                        }
-                    } else {
-                        if (!value.equals(item.getTranslation())) {
-                            StringItem stringItem = new StringItem();
-                            stringItem.setKey(key);
-                            stringItem.setOriginal(item.getOriginal());
-                            stringItem.setTranslation(value);
-                            stringItem.setStage(StageEnum.TRANSLATED.getValue());
-                            stringItem.setContext(item.getContext());
-
-                            stringsApi.updateString(projectId, item.getId(), stringItem).execute();
-                            log.debug("更新词条, key:{}, value:{} -> {}", key, item.getTranslation(), value);
-                        }
+                        stringsApi.updateString(projectId, item.getId(), stringItem).execute();
+                        log.debug("重置为未翻译, key:{} , stage:{}", key, stage.getDesc());
+                        count++;
                     }
                 } else {
-                    log.debug("{} 没有找到译文词条: {}", relativePath, key);
+                    if (!value.equals(item.getTranslation())) {
+                        StringItem stringItem = new StringItem();
+                        stringItem.setKey(key);
+                        stringItem.setOriginal(item.getOriginal());
+                        stringItem.setTranslation(value);
+                        stringItem.setStage(StageEnum.TRANSLATED.getValue());
+                        stringItem.setContext(item.getContext());
+
+                        stringsApi.updateString(projectId, item.getId(), stringItem).execute();
+                        log.debug("更新词条, key:{}, value:{} -> {}", key, item.getTranslation(), value);
+                        count++;
+                    }
                 }
+            } else {
+                log.debug("{} 没有找到译文词条: {}", relativePath, key);
             }
-            log.info("上传译文完成: {}", relativePath);
+        }
+        log.info("上传译文完成: {}, 更新词条数: {}", relativePath, count);
+        if (count > 0) {
+            return "完成 - 更新 " + count + " 词条";
+        } else {
+            return "完成 - 未更新";
         }
     }
 }
