@@ -19,6 +19,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_MESSAGE;
+import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_TITLE;
+
 public class DashboardPanel extends JPanel {
 
     private final Config config;
@@ -219,6 +222,11 @@ public class DashboardPanel extends JPanel {
      */
     public void startUploadTranslations() {
         disableButtons();
+
+        // 弹出对话框，确认是否需要强制上传覆盖未翻译文本
+        int option = JOptionPane.showConfirmDialog(this, ENSURE_FORCE_MESSAGE, ENSURE_FORCE_TITLE,
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        Boolean force = option != JOptionPane.YES_OPTION;
 
         new Thread(() -> {
             AtomicReference<ProgressDialog> progressDialog = new AtomicReference<>();

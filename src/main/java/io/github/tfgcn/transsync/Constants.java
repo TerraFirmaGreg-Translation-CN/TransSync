@@ -47,6 +47,10 @@ public final class Constants {
     public static final String EMPTY_STAT_VALUE = "0";
     public static final String EMPTY_STAT_TIP = "暂无统计数据";
 
+    public static final String ENSURE_FORCE_TITLE = "是否跳过未翻译文本?";
+    public static final String ENSURE_FORCE_MESSAGE =
+            "当检测到本地译文未翻译，而 paratranz 项目将其标记为'已翻译'时，是否忽略该词条？" +
+            "选择'是'将会跳过词条，选择'否'将会强制把该词条重置为'未翻译'状态。";
 
     public static  String formatNumber(int number) {
         return String.format("%,d", number);
