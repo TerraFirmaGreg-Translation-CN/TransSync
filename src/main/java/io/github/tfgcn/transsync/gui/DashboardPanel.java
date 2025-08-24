@@ -131,6 +131,13 @@ public class DashboardPanel extends JPanel {
 
                 // 扫描远程文件文件
                 List<FilesDto> remoteFiles = service.fetchRemoteFiles();
+                if (CollectionUtils.isEmpty(remoteFiles)) {
+                    SwingUtilities.invokeLater(() -> {
+                        enableButtons();
+                        JOptionPane.showMessageDialog(this, "没有需要下载的文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                    return;
+                }
                 List<String> fileNames = remoteFiles.stream().map(FilesDto::getName).toList();
 
                 // 创建并显示进度对话框

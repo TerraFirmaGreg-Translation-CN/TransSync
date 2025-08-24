@@ -1,17 +1,20 @@
 package io.github.tfgcn.transsync.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.github.tfgcn.transsync.Constants;
+import io.github.tfgcn.transsync.paratranz.api.StringsApi;
 import io.github.tfgcn.transsync.paratranz.error.ApiException;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.model.StageEnum;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.files.FileUploadRespDto;
 import io.github.tfgcn.transsync.paratranz.model.files.TranslationDto;
+import io.github.tfgcn.transsync.paratranz.model.strings.StringItem;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +42,8 @@ public class SyncService {
 
     private final ObjectMapper objectMapper;
 
+    @Setter
+    private StringsApi stringsApi;
     @Setter
     private FilesApi filesApi;
     @Setter
@@ -375,6 +380,86 @@ public class SyncService {
             // 文件不存在，直接写入
             objectMapper.writeValue(file, map);
             log.info("文件已保存: {}", relativePath);
+        }
+    }
+
+    /**
+     * 上传译文
+     * @param force 是否强制上传未翻译内容
+     * @throws IOException
+     * @throws ApiException
+     */
+    public void uploadTranslations(Boolean force) throws IOException, ApiException {
+        fetchRemoteFiles();
+
+        if (CollectionUtils.isEmpty(remoteFiles)) {
+            log.info("没有远程文件");
+            return;
+        }
+
+        for (FilesDto remoteFile : remoteFiles) {
+            String relativePath = remoteFile.getName();
+            String absolutePath = workDir + SEPARATOR + relativePath;
+            File file = new File(absolutePath);
+            if (!file.exists() || !file.isFile()) {
+                log.info("文件不存在: {}", relativePath);
+                continue;
+            }
+
+            // 读取远程译文
+            List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
+            if (CollectionUtils.isEmpty(translations)) {
+                log.info("没有远程译文: {}", relativePath);
+                continue;
+            }
+
+            // 读取本地汉化文件
+            Map<String, String> map = objectMapper.readValue(file, new TypeReference<>() {
+            });
+
+            for (TranslationDto item : translations) {
+                String key = item.getKey();
+                StageEnum stage = StageEnum.of(item.getStage());
+                if (stage == StageEnum.HIDDEN) {
+                    // 隐藏词条，不翻译
+                    //log.debug("跳过隐藏词条: {}", key);
+                    continue;
+                }
+
+                if (map.containsKey(key)) {
+                    String value = map.get(key);
+                    if (value.equals(item.getOriginal())) {
+                        // 译文和原文相同，属于未翻译内容。
+                        if (stage != StageEnum.UNTRANSLATED && Boolean.TRUE.equals(force)) {
+                            // 强制标记为未翻译
+                            StringItem stringItem = new StringItem();
+                            stringItem.setKey(key);
+                            stringItem.setOriginal(item.getOriginal());
+                            stringItem.setTranslation(value);
+                            stringItem.setStage(StageEnum.UNTRANSLATED.getValue());
+                            stringItem.setContext(item.getContext());
+
+                            stringsApi.updateString(projectId, item.getId(), stringItem).execute();
+                            log.debug("重置为未翻译, key:{} , stage:{}", key, stage.getDesc());
+                        }
+                    } else {
+                        if (!value.equals(item.getTranslation())) {
+                            StringItem stringItem = new StringItem();
+                            stringItem.setKey(key);
+                            stringItem.setOriginal(item.getOriginal());
+                            stringItem.setTranslation(value);
+                            stringItem.setStage(StageEnum.TRANSLATED.getValue());
+                            stringItem.setContext(item.getContext());
+
+                            stringsApi.updateString(projectId, item.getId(), stringItem).execute();
+                            log.debug("更新词条, key:{}, value:{} -> {}", key, item.getTranslation(), value);
+                        }
+                    }
+                } else {
+                    log.debug("{} 没有找到译文词条: {}", relativePath, key);
+                }
+            }
+            log.info("上传译文完成: {}", relativePath);
         }
     }
 }

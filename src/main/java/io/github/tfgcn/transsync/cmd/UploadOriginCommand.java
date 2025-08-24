@@ -23,7 +23,7 @@ import static io.github.tfgcn.transsync.Constants.*;
  * @author yanmaoyuan
  */
 @Slf4j
-@CommandLine.Command(name = "upload-origin", mixinStandardHelpOptions = true, version = Constants.VERSION,
+@CommandLine.Command(name = "up-origin", mixinStandardHelpOptions = true, version = Constants.VERSION,
         description ="Upload original file to paratranz.")
 public class UploadOriginCommand extends BaseCommand implements Callable<Integer> {
 

@@ -5,6 +5,7 @@ import io.github.tfgcn.transsync.Constants;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
+import io.github.tfgcn.transsync.paratranz.api.StringsApi;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 import io.github.tfgcn.transsync.service.SyncService;
 import lombok.extern.slf4j.Slf4j;
@@ -13,14 +14,18 @@ import picocli.CommandLine;
 import java.util.concurrent.Callable;
 
 /**
- * desc: 下载译文命令
+ * desc: 上传译文命令
  *
  * @author yanmaoyuan
  */
 @Slf4j
-@CommandLine.Command(name = "down-trans", mixinStandardHelpOptions = true, version = Constants.VERSION,
-        description ="Download translations from paratranz.")
-public class DownloadTranslationsCommand extends BaseCommand implements Callable<Integer> {
+@CommandLine.Command(name = "up-trans", mixinStandardHelpOptions = true, version = Constants.VERSION,
+        description ="Upload translated file to paratranz.")
+public class UploadTranslationsCommand extends BaseCommand implements Callable<Integer> {
+
+    @CommandLine.Option(names = {"-f", "--force"}, description = "是否强制覆盖未翻译内容", defaultValue = "false", showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
+    protected Boolean force;// 强制覆盖未翻译内容
+
     @Override
     public Integer call() throws Exception {
         Config config = initConfig();
@@ -29,8 +34,10 @@ public class DownloadTranslationsCommand extends BaseCommand implements Callable
         }
 
         ParatranzApiFactory factory = new ParatranzApiFactory(config);
+
         ProjectsApi projectsApi = factory.create(ProjectsApi.class);
         FilesApi filesApi = factory.create(FilesApi.class);
+        StringsApi  stringsApi = factory.create(StringsApi.class);
 
         // 检查ProjectId是否正确
         ProjectsDto projectsDto = projectsApi.getProject(config.getProjectId()).execute().body();
@@ -43,13 +50,11 @@ public class DownloadTranslationsCommand extends BaseCommand implements Callable
 
         SyncService app = new SyncService();
         app.setFilesApi(filesApi);
+        app.setStringsApi(stringsApi);
         app.setProjectId(config.getProjectId());
         app.setWorkspace(config.getWorkspace());
 
-        // 执行上传
-        app.downloadTranslations();
-
-        log.info("Done");
+        app.uploadTranslations(force);
         return 0;
     }
 }

@@ -3,6 +3,7 @@ package io.github.tfgcn.transsync;
 import com.formdev.flatlaf.FlatLightLaf;
 import io.github.tfgcn.transsync.cmd.DownloadTranslationsCommand;
 import io.github.tfgcn.transsync.cmd.UploadOriginCommand;
+import io.github.tfgcn.transsync.cmd.UploadTranslationsCommand;
 import io.github.tfgcn.transsync.paratranz.error.ApiException;
 import io.github.tfgcn.transsync.gui.MainFrame;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class Main {
     private static void cmd(String[] args) throws IOException {
         CommandLine commandLine = new CommandLine(new Main())
                 .addSubcommand(new UploadOriginCommand())
+                .addSubcommand(new UploadTranslationsCommand())
                 .addSubcommand(new DownloadTranslationsCommand());
         commandLine.setExecutionStrategy(new CommandLine.RunLast());
         commandLine.execute(args);
