@@ -1,5 +1,6 @@
 package io.github.tfgcn.transsync.gui;
 
+import io.github.tfgcn.transsync.paratranz.model.projects.ProjectStatsDto;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 
 import javax.swing.*;
@@ -7,14 +8,13 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Map;
 
 import static io.github.tfgcn.transsync.Constants.*;
 
 public class ProjectInfoPanel extends JPanel {
-    private ProjectsDto project;
+    private transient ProjectsDto project;
 
-    // 颜色常量（保留原定义）
+    // 颜色常量
     private static final Color BACKGROUND_COLOR = new Color(245, 247, 250);
     private static final Color PRIMARY_COLOR = new Color(66, 133, 244);
     private static final Color SECONDARY_COLOR = new Color(112, 117, 122);
@@ -22,19 +22,19 @@ public class ProjectInfoPanel extends JPanel {
     private static final Color PROGRESS_BG = new Color(240, 240, 240);
     private static final Color EMPTY_TEXT_COLOR = new Color(150, 150, 150); // 空状态文本色
 
-    // 字体常量（保留原定义）
-    private static final Font TITLE_FONT = new Font("SansSerif", Font.BOLD, 22);
-    private static final Font LABEL_FONT = new Font("SansSerif", Font.PLAIN, 14);
-    private static final Font VALUE_FONT = new Font("SansSerif", Font.BOLD, 14);
-    private static final Font SMALL_FONT = new Font("SansSerif", Font.PLAIN, 12);
-    private static final Font BADGE_FONT = new Font("SansSerif", Font.PLAIN, 12);
+    // 字体常量
+    private static final Font TITLE_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 22);
+    private static final Font LABEL_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 14);
+    private static final Font VALUE_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 14);
+    private static final Font SMALL_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+    private static final Font BADGE_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 
-    // 固定尺寸配置（可根据需求调整）
+    // 固定尺寸配置
     private static final int FIXED_WIDTH = 600;  // 固定宽度
     private static final int FIXED_HEIGHT = 340; // 固定高度
     private static final int PROGRESS_BAR_WIDTH = 250; // 统计进度条宽度（支持拉伸）
 
-    // 核心组件引用（用于动态更新）
+    // 核心组件引用
     private JPanel contentPanel;
     private JScrollPane scrollPane;
 
@@ -51,17 +51,17 @@ public class ProjectInfoPanel extends JPanel {
         setBackground(BACKGROUND_COLOR);
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // 初始化内容面板（后续更新时会替换此面板内容）
+        // 初始化内容面板
         contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(BACKGROUND_COLOR);
         contentPanel.setBorder(new EmptyBorder(0, 0, 0, 10)); // 右侧留空避免滚动条遮挡
 
-        // 初始化滚动面板（固定尺寸，仅在内容超出时显示滚动条）
+        // 初始化滚动面板
         scrollPane = new JScrollPane(contentPanel);
         scrollPane.setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); // 禁用水平滚动
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER); // 禁用水平滚动
 
         // 填充初始内容
         refreshContent();
@@ -79,10 +79,10 @@ public class ProjectInfoPanel extends JPanel {
     }
 
     /**
-     * 刷新内容面板（核心逻辑：清空旧内容 → 重新创建新内容 → 重绘界面）
+     * 刷新内容面板
      */
     private void refreshContent() {
-        // 清空原有内容（避免组件叠加）
+        // 清空原有内容
         contentPanel.removeAll();
 
         // 重新添加所有内容组件
@@ -90,7 +90,7 @@ public class ProjectInfoPanel extends JPanel {
         contentPanel.add(Box.createRigidArea(new Dimension(0, 15))); // 垂直间距
 
         // 添加分隔线
-        JSeparator separator1 = new JSeparator(JSeparator.HORIZONTAL);
+        JSeparator separator1 = new JSeparator(SwingConstants.HORIZONTAL);
         separator1.setForeground(new Color(220, 220, 220));
         contentPanel.add(separator1);
         contentPanel.add(Box.createRigidArea(new Dimension(0, 15)));
@@ -98,7 +98,7 @@ public class ProjectInfoPanel extends JPanel {
         // 添加统计信息部分
         contentPanel.add(createStatsPanel());
 
-        // 强制刷新UI（避免 Swing 延迟渲染）
+        // 强制刷新UI
         contentPanel.revalidate();
         contentPanel.repaint();
         scrollPane.revalidate();
@@ -106,7 +106,7 @@ public class ProjectInfoPanel extends JPanel {
     }
 
     /**
-     * 创建项目基本信息面板（支持null安全）
+     * 创建项目基本信息面板
      */
     private JPanel createGeneralInfoPanel() {
         JPanel panel = new JPanel(new BorderLayout(15, 0));
@@ -118,10 +118,8 @@ public class ProjectInfoPanel extends JPanel {
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setBackground(BACKGROUND_COLOR);
 
-        // 1. 项目名称（null时显示占位文本）
-        String projectName = (project != null && project.getName() != null)
-                ? project.getName()
-                : EMPTY_NAME;
+        // 1. 项目名称
+        String projectName = project != null ? project.getName() : EMPTY_NAME;
         JLabel nameLabel = new JLabel(projectName);
         nameLabel.setFont(TITLE_FONT);
         nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -131,7 +129,7 @@ public class ProjectInfoPanel extends JPanel {
         infoPanel.add(nameLabel);
         infoPanel.add(Box.createRigidArea(new Dimension(0, 8)));
 
-        // 2. 创建时间（null时显示占位文本）
+        // 2. 创建时间
         String createTime = (project != null && project.getCreatedAt() != null)
                 ? "创建于 " + formatDate(project.getCreatedAt())
                 : EMPTY_DATE;
@@ -142,7 +140,7 @@ public class ProjectInfoPanel extends JPanel {
         infoPanel.add(createdAtLabel);
         infoPanel.add(Box.createRigidArea(new Dimension(0, 12)));
 
-        // 3. 标签区域（null时显示默认占位标签）
+        // 3. 标签区域
         JPanel badgesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         badgesPanel.setBackground(BACKGROUND_COLOR);
         badgesPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -175,7 +173,7 @@ public class ProjectInfoPanel extends JPanel {
     }
 
     /**
-     * 创建统计信息面板（支持null安全，进度条支持拉伸）
+     * 创建统计信息面板
      */
     private JPanel createStatsPanel() {
         JPanel panel = new JPanel();
@@ -183,22 +181,22 @@ public class ProjectInfoPanel extends JPanel {
         panel.setBackground(BACKGROUND_COLOR);
 
         // 处理null统计数据
-        Map<String, Object> stats = (project != null) ? project.getStats() : null;
+        ProjectStatsDto stats = (project != null) ? project.getStats() : null;
 
-        if (stats != null && !stats.isEmpty()) {
-            // 提取统计数据（默认值为0，避免NPE）
-            int total = (int) stats.getOrDefault("total", 0);
-            int translated = (int) stats.getOrDefault("translated", 0);
-            int checked = (int) stats.getOrDefault("checked", 0);
-            int reviewed = (int) stats.getOrDefault("reviewed", 0);
-            int words = (int) stats.getOrDefault("words", 0);
-            int hidden = (int) stats.getOrDefault("hidden", 0);
+        if (stats != null) {
+            // 提取统计数据
+            int total = stats.getTotal();
+            int translated = stats.getTranslated();
+            int checked = stats.getChecked();
+            int reviewed = stats.getReviewed();
+            int words = stats.getWords();
+            int hidden = stats.getHidden();
 
-            double tp = (double) stats.getOrDefault("tp", 0.0);
-            double cp = (double) stats.getOrDefault("cp", 0.0);
-            double rp = (double) stats.getOrDefault("rp", 0.0);
+            double tp = stats.getTp();
+            double cp = stats.getCp();
+            double rp = stats.getRp();
 
-            // 添加统计行（进度条支持拉伸）
+            // 添加统计行
             panel.add(createStatRow("总字数", null, formatNumber(words)));
             panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
@@ -228,7 +226,7 @@ public class ProjectInfoPanel extends JPanel {
     }
 
     /**
-     * 创建统计行（左侧标签 + 中间进度条/拉伸空间 + 右侧数值）
+     * 创建统计行
      */
     private JPanel createStatRow(String label, JComponent progress, String value) {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
@@ -286,7 +284,7 @@ public class ProjectInfoPanel extends JPanel {
     }
 
     /**
-     * 创建标签组件（统一样式）
+     * 创建标签组件
      */
     private JLabel createBadge(String text, Color bgColor) {
         JLabel badge = new JLabel(text);
@@ -294,7 +292,7 @@ public class ProjectInfoPanel extends JPanel {
         badge.setOpaque(true);
         badge.setBackground(bgColor);
         badge.setForeground(Color.WHITE);
-        // 标签边框与内边距（确保美观）
+        // 标签边框与内边距
         badge.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(bgColor.darker(), 1),
                 BorderFactory.createEmptyBorder(3, 7, 3, 7)
@@ -302,7 +300,7 @@ public class ProjectInfoPanel extends JPanel {
         return badge;
     }
 
-    // ==================== 工具方法（保留原逻辑，增加null安全）====================
+    // ==================== 工具方法 ====================
     private String formatDate(Date date) {
         if (date == null) return EMPTY_DATE.replace("暂无", "");
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日 HH:mm");

@@ -6,6 +6,7 @@ import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.UsersApi;
 import io.github.tfgcn.transsync.paratranz.interceptor.LoggingInterceptor;
 import io.github.tfgcn.transsync.paratranz.model.users.UsersDto;
+import io.github.tfgcn.transsync.service.model.FileScanRule;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import retrofit2.Response;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import static io.github.tfgcn.transsync.Constants.*;
 
@@ -32,6 +34,7 @@ public final class Config {
     private Integer projectId;
     private String httpLogLevel;
     private String workspace;
+    private List<FileScanRule> rules;
 
     // 私有构造函数，防止外部实例化
     private Config() {

@@ -3,6 +3,7 @@ package io.github.tfgcn.transsync.service;
 import io.github.tfgcn.transsync.service.model.FileScanRequest;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -55,15 +57,15 @@ public class FileScanService {
         }
 
         // 查找所有匹配的文件
-        List<Path> matchedFiles = findFiles(workspacePath, sourceFilePattern);
+        List<Path> matchedFiles = findFiles(workspacePath, sourceFilePattern, request.getIgnores());
 
         // 生成映射结果
         for (Path file : matchedFiles) {
             Path targetPath = generateTargetPath(
                     workspacePath,
                     file,
-                    request.getSourceLanguage(),
-                    request.getLanguage(),
+                    request.getSrcLang(),
+                    request.getDestLang(),
                     translationFilePattern
             );
 
@@ -86,7 +88,7 @@ public class FileScanService {
     /**
      * 查找匹配模式的文件
      */
-    private List<Path> findFiles(Path baseDir, String pattern) throws IOException {
+    private List<Path> findFiles(Path baseDir, String pattern, List<String> ignores) throws IOException {
         List<Path> result = new ArrayList<>();
 
         // 解析glob模式
@@ -115,12 +117,45 @@ public class FileScanService {
         // 使用Java NIO的Glob匹配器
         final PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
 
+        // 添加忽略能力
+        final List<PathMatcher> ignoreMatchers;
+        if (CollectionUtils.isNotEmpty(ignores)) {
+            ignoreMatchers = new ArrayList<>(ignores.size());
+            for (String ignore : ignores) {
+                // 支持glob模式的忽略规则，如**/.git/**、*.tmp等
+                ignoreMatchers.add(FileSystems.getDefault().getPathMatcher("glob:" + ignore));
+            }
+        } else {
+            ignoreMatchers = Collections.emptyList();
+        }
+
         // 遍历所有文件
         Files.walkFileTree(rootDir, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                Path relativeDir = rootDir.relativize(dir);
+                // 检查目录是否需要被忽略
+                for (PathMatcher matcher : ignoreMatchers) {
+                    if (matcher.matches(relativeDir)) {
+                        return FileVisitResult.SKIP_SUBTREE; // 跳过整个子目录
+                    }
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                 // 获取相对于根目录的路径用于匹配
                 Path relativePath = rootDir.relativize(file);
+
+                // 检查文件是否需要被忽略
+                for (PathMatcher matcher : ignoreMatchers) {
+                    if (matcher.matches(relativePath)) {
+                        return FileVisitResult.CONTINUE; // 忽略该文件
+                    }
+                }
+
+                // 检查文件是否匹配目标模式
                 if (matcher.matches(relativePath)) {
                     result.add(file);
                 }
@@ -129,6 +164,7 @@ public class FileScanService {
 
             @Override
             public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                log.warn("访问文件失败: {}", file, exc);
                 return FileVisitResult.CONTINUE;
             }
         });

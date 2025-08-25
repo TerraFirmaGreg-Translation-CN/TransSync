@@ -38,7 +38,7 @@ public class ProjectsDto {
     private String abuse;
     private String rank;
     private Map<String, Object> extra;
-    private Map<String, Object> stats;
+    private ProjectStatsDto stats;
     private List<String> relatedGames;
     private Boolean isPrivate;
     private String gameName;

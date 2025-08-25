@@ -5,15 +5,12 @@ import io.github.tfgcn.transsync.Constants;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
-import io.github.tfgcn.transsync.paratranz.interceptor.LoggingInterceptor;
+import io.github.tfgcn.transsync.paratranz.model.projects.ProjectStatsDto;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 import io.github.tfgcn.transsync.service.SyncService;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
-import javax.swing.*;
-import java.awt.*;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 import static io.github.tfgcn.transsync.Constants.*;
@@ -61,21 +58,20 @@ public class UploadOriginCommand extends BaseCommand implements Callable<Integer
         // 查询统计结果
         projectsDto = projectsApi.getProject(config.getProjectId()).execute().body();
         assert projectsDto != null;
-        Map<String, Object> stats = projectsDto.getStats();
+        ProjectStatsDto stats = projectsDto.getStats();
 
+        if (stats != null) {
+            // 提取统计数据
+            int total = stats.getTotal();
+            int translated = stats.getTranslated();
+            int checked = stats.getChecked();
+            int reviewed = stats.getReviewed();
+            int words = stats.getWords();
+            int hidden = stats.getHidden();
 
-        if (stats != null && !stats.isEmpty()) {
-            // 提取统计数据（默认值为0，避免NPE）
-            int total = (int) stats.getOrDefault("total", 0);
-            int translated = (int) stats.getOrDefault("translated", 0);
-            int checked = (int) stats.getOrDefault("checked", 0);
-            int reviewed = (int) stats.getOrDefault("reviewed", 0);
-            int words = (int) stats.getOrDefault("words", 0);
-            int hidden = (int) stats.getOrDefault("hidden", 0);
-
-            double tp = (double) stats.getOrDefault("tp", 0.0);
-            double cp = (double) stats.getOrDefault("cp", 0.0);
-            double rp = (double) stats.getOrDefault("rp", 0.0);
+            double tp = stats.getTp();
+            double cp = stats.getCp();
+            double rp = stats.getRp();
 
             // 添加统计行（进度条支持拉伸）
             log.info("总字数: {}", formatNumber(words));

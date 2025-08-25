@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FileScanServiceTest {
 
     // ========================= 测试路径常量定义 =========================
-    private static final String SOURCE_LANG = "en_us";
-    private static final String TARGET_LANG = "zh_cn";
+    private static final String SRC_LANG = "en_us";
+    private static final String DEST_LANG = "zh_cn";
 
     // 模式1：语言文件夹下直接有文件
     private static final String PATTERN1_FILE1 = "test/en_us/blocks.json";
@@ -121,8 +121,8 @@ class FileScanServiceTest {
         request.setWorkspace(".");
         request.setSourceFilePattern(param.getSourceFilePattern());
         request.setTranslationFilePattern(param.getTranslationFilePattern());
-        request.setSourceLanguage(SOURCE_LANG);
-        request.setLanguage(TARGET_LANG);
+        request.setSrcLang(SRC_LANG);
+        request.setDestLang(DEST_LANG);
 
         // 2. 执行扫描
         FileScanService service = new FileScanService();
