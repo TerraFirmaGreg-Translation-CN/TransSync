@@ -49,6 +49,7 @@ public class UploadOriginCommand extends BaseCommand implements Callable<Integer
         app.setFilesApi(filesApi);
         app.setProjectId(config.getProjectId());
         app.setWorkspace(config.getWorkspace());
+        app.setRules(config.getRules());
 
         // 执行上传
         app.uploadOriginals();

@@ -16,7 +16,9 @@ import io.github.tfgcn.transsync.paratranz.model.files.FileUploadRespDto;
 import io.github.tfgcn.transsync.paratranz.model.files.TranslationDto;
 import io.github.tfgcn.transsync.paratranz.model.strings.StringItem;
 import io.github.tfgcn.transsync.service.model.DownloadTranslationResult;
-import lombok.Getter;
+import io.github.tfgcn.transsync.service.model.FileScanRequest;
+import io.github.tfgcn.transsync.service.model.FileScanResult;
+import io.github.tfgcn.transsync.service.model.FileScanRule;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
@@ -50,11 +52,14 @@ public class SyncService {
     private FilesApi filesApi;
     @Setter
     private Integer projectId;
-    @Getter
     private String workDir;
+    @Setter
+    private List<FileScanRule> rules;
 
     private List<FilesDto> remoteFiles;
     private Map<String, FilesDto> remoteFilesMap;
+
+    private final FileScanService fileScanService;
 
     public SyncService() {
         objectMapper = new ObjectMapper();
@@ -67,6 +72,8 @@ public class SyncService {
 
         this.remoteFiles = Collections.emptyList();
         this.remoteFilesMap = Collections.emptyMap();
+
+        this.fileScanService = new FileScanService();
     }
 
     /**
@@ -116,27 +123,30 @@ public class SyncService {
     /**
      * 获取待上传的文件列表
      */
-    public List<File> getOriginalFiles() {
-        // 扫描语言文件夹下的 en_us 目录，把文本上传到 paratranz
-        List<File> fileList = new ArrayList<>(100);
-        scanEnglishFiles(fileList, new File(workDir + SEPARATOR + FOLDER_TOOLS_MODERN_LANGUAGE_FILES));
+    public List<FileScanResult> getOriginalFiles() {
+        if (CollectionUtils.isEmpty(rules)) {
+            throw new RuntimeException("未配置文件扫描规则，请先配置扫描规则");
+        }
+
+        List<FileScanResult> fileList = new ArrayList<>(100);
+
+        for (FileScanRule rule : rules) {
+            FileScanRequest request = new FileScanRequest();
+            request.setWorkspace(workDir);
+            request.setSourceFilePattern(rule.getSourcePattern());
+            request.setTranslationFilePattern(rule.getTranslationPattern());
+            request.setSrcLang(rule.getSrcLang());
+            request.setDestLang(rule.getDestLang());
+            request.setIgnores(rule.getIgnores());
+            try {
+                List<FileScanResult> results = fileScanService.scanAndMapFiles(request);
+                fileList.addAll(results);
+            } catch (Exception ex) {
+                log.error("扫描文件失败, rule:{}", rule, ex);
+            }
+        }
+
         return fileList;
-    }
-
-    public List<String> getRemoteFilePaths(List<File> fileList) {
-        if (CollectionUtils.isEmpty(fileList)) {
-            return Collections.emptyList();
-        }
-
-        List<String> fileNames = new ArrayList<>(fileList.size());
-        for (File file : fileList) {
-            // 计算远程目录的路径
-            String remoteFolder = getRemoteFolder(file);
-            // 生成上传 paratranz 的最终文件名。可用于比较远程文件是否已存在
-            String zhFilePath = remoteFolder + SEPARATOR + file.getName();
-            fileNames.add(zhFilePath);
-        }
-        return fileNames;
     }
 
     /**
@@ -148,82 +158,20 @@ public class SyncService {
 
         log.info("Scanning language files in: {}", FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
         // 扫描语言文件夹下的 en_us 目录，把文本上传到 paratranz
-        List<File> fileList = new ArrayList<>(100);
-        scanEnglishFiles(fileList, new File(workDir + SEPARATOR + FOLDER_TOOLS_MODERN_LANGUAGE_FILES));
+        List<FileScanResult> fileList = getOriginalFiles();
 
         log.info("Found files: {}", fileList.size());
-        for (File file : fileList) {
-            // 计算远程目录的路径
-            String remoteFolder = getRemoteFolder(file);
+        for (FileScanResult item : fileList) {
+            File file = new File(workDir + SEPARATOR + item.getSourceFilePath());
+            String remoteFolder = item.getTranslationFileFolder();
 
-            // 生成上传 paratranz 的最终文件名。可用于比较远程文件是否已存在
-            String zhFilePath = remoteFolder + SEPARATOR + file.getName();
-
-            FilesDto remoteFile = remoteFilesMap.get(zhFilePath);
+            FilesDto remoteFile = remoteFilesMap.get(item.getTranslationFilePath());
             if (remoteFile == null) {
                 uploadFile(remoteFolder, file);
             } else {
                 updateFile(remoteFile, remoteFolder, file);
             }
         }
-    }
-
-    private String getRemoteFolder(File file) {
-        // 获取英文文件的文件夹绝对路径
-        // C:\Users\yanmaoyuan\TerraFirmaGreg\Tools-Modern\LanguageMerger\LanguageFiles\mods\tfg\en_us\Quests\ae2.json
-        // C:\Users\yanmaoyuan\TerraFirmaGreg\Tools-Modern\LanguageMerger\LanguageFiles\mods\tfg\en_us\Quests
-        String absoluteFolderPath = file.getParentFile().getAbsolutePath();
-
-        // 将其替换为相对路径，以便和 paratranz 的文件路径一致
-        // Tools-Modern/LanguageMerger/LanguageFiles/mods/tfg/en_us/Quests
-        String relativeFolderPath = absoluteFolderPath.replace("\\", SEPARATOR).substring(workDir.length() + 1);
-
-        // 替换为中文文件路径，与 paratranz 的文件路径一致
-        // Tools-Modern/LanguageMerger/LanguageFiles/mods/tfg/zh_cn/Quests
-        return relativeFolderPath.replaceFirst(EN_US, ZH_CN);
-    }
-
-    /**
-     * 递归扫描指定目录下的英语文件
-     *
-     * @param files 用于存储扫描到的文件
-     * @param folder 当前扫描目录
-     */
-    public void scanEnglishFiles(List<File> files, File folder) {
-        if (!folder.exists() || !folder.isDirectory()) {
-            log.warn("目录不存在或者不是目录：{}", folder);
-            return;
-        }
-
-        File[] subFiles = folder.listFiles();
-        if (subFiles == null) {
-            log.warn("目录不存在或者不是目录：{}", folder);
-            return;
-        }
-
-        for (File subFile : subFiles) {
-            if (subFile.isFile() && isEnglishLanguageFile(subFile)) {
-                files.add(subFile);
-            } else if (subFile.isDirectory()) {
-                scanEnglishFiles(files, subFile);
-            }
-        }
-    }
-
-    /**
-     * 判断是否是英文语言文件
-     * <pre>Tools-Modern/LanguageMerger/LanguageFiles/../en_us/../*.json</pre>
-     * @param file
-     * @return
-     */
-    private boolean isEnglishLanguageFile(File file) {
-        String path = file.getAbsolutePath().replace("\\", SEPARATOR);
-        int workDirLength = workDir.length();
-        if (path.length() < workDirLength + 1) {
-            return false;
-        }
-        String relativePath = path.substring(workDirLength + 1);
-        return relativePath.indexOf(EN_US) > 0 && relativePath.endsWith(".json");
     }
 
     public void updateFile(FilesDto remoteFile, String remoteFolder, File file) throws IOException, ApiException {
@@ -261,19 +209,17 @@ public class SyncService {
     /**
      * 上传原始文件
      * 这个接口是给GUI用的，返回结果用于界面展示。
-     * @param file
+     * @param scannedFile
      * @return
      * @throws IOException
      * @throws ApiException
      */
-    public String uploadOriginalFile(File file) throws IOException, ApiException {
-        // 计算远程目录的路径
-        String remoteFolder = getRemoteFolder(file);
+    public String uploadOriginalFile(FileScanResult scannedFile) throws IOException, ApiException {
+        File file = new File(workDir + SEPARATOR + scannedFile.getSourceFilePath());
+        String remoteFolder = scannedFile.getTranslationFileFolder();
 
         // 生成上传 paratranz 的最终文件名。可用于比较远程文件是否已存在
-        String zhFilePath = remoteFolder + SEPARATOR + file.getName();
-
-        FilesDto remoteFile = remoteFilesMap.get(zhFilePath);
+        FilesDto remoteFile = remoteFilesMap.get(scannedFile.getTranslationFilePath());
         if (remoteFile == null) {
             uploadFile(remoteFolder, file);
             return "完成 - 新文件";

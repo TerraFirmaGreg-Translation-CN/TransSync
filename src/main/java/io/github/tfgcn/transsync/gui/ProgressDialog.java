@@ -2,6 +2,7 @@ package io.github.tfgcn.transsync.gui;
 
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.service.SyncService;
+import io.github.tfgcn.transsync.service.model.FileScanResult;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -10,7 +11,6 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,9 +22,9 @@ public class ProgressDialog extends JDialog {
     private static final Color GREEN_BUTTON_COLOR = new Color(40, 167, 69);  // 完成按钮绿色
     private static final Color BUTTON_TEXT_COLOR = Color.WHITE;              // 按钮文字白色
 
-    @Getter
+    private final AtomicBoolean isStarted;// 用于标记任务是否已开始
     private final AtomicBoolean isCancelled;// 用于标记是否需要终止任务
-    private boolean isCompleted;// 用于标记任务是否完成
+    private final AtomicBoolean isCompleted;// 用于标记任务是否完成
     private final transient SyncService syncService;
     private final transient TaskType taskType; // 任务类型
     private final transient List<?> fileItems;
@@ -46,8 +46,9 @@ public class ProgressDialog extends JDialog {
                           List<?> fileItems,
                           Boolean force) {
         super(owner, title, true);
+        this.isStarted = new AtomicBoolean(false);
         this.isCancelled = new AtomicBoolean(false);
-        this.isCompleted = false;
+        this.isCompleted = new AtomicBoolean(false);
         this.taskType = taskType;
         this.syncService = syncService;
         this.fileItems = fileItems;
@@ -74,7 +75,7 @@ public class ProgressDialog extends JDialog {
     // 将文件列表转换为显示用的文件名（适配不同文件类型）
     private List<String> convertToFileNames(List<?> fileItems) {
         return fileItems.stream().map(item -> {
-            if (item instanceof File file) return file.getName();
+            if (item instanceof FileScanResult file) return file.getTranslationFilePath();
             if (item instanceof FilesDto dto) return dto.getName();
             return item.toString();
         }).toList();
@@ -139,6 +140,7 @@ public class ProgressDialog extends JDialog {
         customizeButton(startButton, GREEN_BUTTON_COLOR);
         startButton.addActionListener(e -> {
             startButton.setVisible(false); // 隐藏开始按钮
+            isStarted.set(true);
             new Thread(this::executeTask).start(); // 启动任务线程
         });
 
@@ -217,24 +219,28 @@ public class ProgressDialog extends JDialog {
 
     // 处理取消操作
     private void handleCancel() {
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "确定要取消吗？未完成的文件将停止上传/下载。",
-                "确认取消",
-                JOptionPane.YES_NO_OPTION
-        );
+        if (isStarted.get() && !isCompleted.get()) {
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "确定要取消吗？未完成的文件将停止上传/下载。",
+                    "确认取消",
+                    JOptionPane.YES_NO_OPTION
+            );
 
-        if (confirm == JOptionPane.YES_OPTION) {
-            isCancelled.set(true);
-            cancelButton.setEnabled(false);
-            cancelButton.setText("取消中...");
-            cancelButton.setBackground(RED_BUTTON_COLOR.brighter());
+            if (confirm == JOptionPane.YES_OPTION) {
+                isCancelled.set(true);
+                cancelButton.setEnabled(false);
+                cancelButton.setText("取消中...");
+                cancelButton.setBackground(RED_BUTTON_COLOR.brighter());
+            }
+        } else {
+            dispose();
         }
     }
 
     // 处理窗口关闭操作
     private void handleWindowClose() {
-        if (isCompleted) {
+        if (!isStarted.get() || isCompleted.get()) {
             dispose();
         } else {
             handleCancel();
@@ -263,7 +269,7 @@ public class ProgressDialog extends JDialog {
                 String result;
                 switch (taskType) {
                     case UPLOAD_ORIGINALS: {
-                        result = syncService.uploadOriginalFile((File) file);
+                        result = syncService.uploadOriginalFile((FileScanResult) file);
                         break;
                     }
                     case UPLOAD_TRANSLATIONS: {
@@ -289,7 +295,7 @@ public class ProgressDialog extends JDialog {
 
         // 任务结束：更新对话框状态
         SwingUtilities.invokeLater(() -> {
-            isCompleted = true;
+            isCompleted.set(true);
             cancelButton.setVisible(false);
             completeButton.setVisible(true);
             setTitle(getTitle() + (isCancelled.get() ? " - 已取消" : " - 完成"));

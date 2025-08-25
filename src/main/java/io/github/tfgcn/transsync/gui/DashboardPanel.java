@@ -8,6 +8,7 @@ import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 import io.github.tfgcn.transsync.service.SyncService;
+import io.github.tfgcn.transsync.service.model.FileScanResult;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,6 +19,11 @@ import java.util.List;
 import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_MESSAGE;
 import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_TITLE;
 
+/**
+ * 仪表盘面板
+ *
+ * @author yanmaoyuan
+ */
 public class DashboardPanel extends JPanel {
 
     private final transient Config config;
@@ -198,8 +204,8 @@ public class DashboardPanel extends JPanel {
             SyncService service = getSyncService();
 
             // 2. 获取待处理文件列表（提前检查，无文件则提示）
-            List<File> files = service.getOriginalFiles();
-            if (files.isEmpty()) {
+            List<FileScanResult> fileScanResults = service.getOriginalFiles();
+            if (fileScanResults.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "没有需要上传的原文文件", "提示", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
@@ -213,7 +219,7 @@ public class DashboardPanel extends JPanel {
                     "上传原文",
                     TaskType.UPLOAD_ORIGINALS,
                     service,
-                    files,
+                    fileScanResults,
                     null // 无需force参数
             );
             dialog.setVisible(true); // 模态显示，对话框关闭后再执行后续操作
@@ -280,13 +286,14 @@ public class DashboardPanel extends JPanel {
 
     /**
      * 获取一个新的 SyncService 实例
-     * @return
-     * @throws IOException
+     * @return SyncService 实例
+     * @throws IOException 非法工作目录可能导致此异常
      */
     public SyncService getSyncService() throws IOException {
         SyncService service = new SyncService();
         service.setWorkspace(config.getWorkspace());
         service.setProjectId(config.getProjectId());
+        service.setRules(config.getRules());
 
         ParatranzApiFactory factory = new ParatranzApiFactory(config);
         service.setFilesApi(factory.create(FilesApi.class));

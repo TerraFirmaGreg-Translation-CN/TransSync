@@ -53,6 +53,7 @@ public class UploadTranslationsCommand extends BaseCommand implements Callable<I
         app.setStringsApi(stringsApi);
         app.setProjectId(config.getProjectId());
         app.setWorkspace(config.getWorkspace());
+        app.setRules(config.getRules());
 
         app.uploadTranslations(force);
         return 0;

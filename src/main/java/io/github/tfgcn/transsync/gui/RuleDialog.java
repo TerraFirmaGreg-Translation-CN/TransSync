@@ -76,7 +76,7 @@ public class RuleDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0.2;
-        panel.add(new JLabel("源文件模式:"), gbc);
+        panel.add(new JLabel("原文匹配模式:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 0;
@@ -87,7 +87,7 @@ public class RuleDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0.2;
-        panel.add(new JLabel("翻译文件模式:"), gbc);
+        panel.add(new JLabel("译文匹配模式:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 1;
@@ -153,21 +153,21 @@ public class RuleDialog extends JDialog {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // 创建源文件树
-        sourceTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode("源文件"));
+        sourceTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode("原文"));
         sourceTree = new JTree(sourceTreeModel);
         sourceTree.setRootVisible(false);
 
         // 创建翻译文件树
-        translationTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode("翻译文件"));
+        translationTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode("译文"));
         translationTree = new JTree(translationTreeModel);
         translationTree.setRootVisible(false);
 
         // 添加滚动面板
         JScrollPane sourceScroll = new JScrollPane(sourceTree);
-        sourceScroll.setBorder(BorderFactory.createTitledBorder("源文件"));
+        sourceScroll.setBorder(BorderFactory.createTitledBorder("原文"));
 
         JScrollPane translationScroll = new JScrollPane(translationTree);
-        translationScroll.setBorder(BorderFactory.createTitledBorder("翻译文件"));
+        translationScroll.setBorder(BorderFactory.createTitledBorder("译文"));
 
         panel.add(sourceScroll);
         panel.add(translationScroll);
@@ -251,8 +251,8 @@ public class RuleDialog extends JDialog {
     // 更新树显示
     private void updateTrees(List<FileScanResult> results) {
         // 清空树和映射
-        sourceTreeModel.setRoot(new DefaultMutableTreeNode("源文件"));
-        translationTreeModel.setRoot(new DefaultMutableTreeNode("翻译文件"));
+        sourceTreeModel.setRoot(new DefaultMutableTreeNode("原文"));
+        translationTreeModel.setRoot(new DefaultMutableTreeNode("译文"));
 
         // 添加源文件树节点
         DefaultMutableTreeNode sourceRoot = (DefaultMutableTreeNode) sourceTreeModel.getRoot();
