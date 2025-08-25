@@ -52,11 +52,17 @@ public final class Constants {
             "当检测到本地译文未翻译，而 paratranz 项目将其标记为'已翻译'时，是否覆盖该词条？" +
             "选择'是'将强制把该词条重置为'未翻译'状态，选择'否'将跳过该词条。";
 
-    public static  String formatNumber(int number) {
+    public static String formatNumber(int number) {
         return String.format("%,d", number);
     }
 
-    public static  String formatPercent(double value) {
+    public static String formatPercent(double value) {
         return String.format("%.2f%%", value * 100);
+    }
+
+    public static String formatFileSize(int size) {
+        return size < 1024 ? size + " B" : size < 1024 * 1024 ? String.format("%.2f KiB", size / 1024.0) :
+                size < 1024 * 1024 * 1024 ? String.format("%.2f MiB", size / 1024.0 / 1024.0) :
+                        String.format("%.2f GiB", size / 1024.0 / 1024.0 / 1024.0);
     }
 }

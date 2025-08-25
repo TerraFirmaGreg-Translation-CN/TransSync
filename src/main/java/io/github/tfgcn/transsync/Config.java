@@ -1,5 +1,8 @@
 package io.github.tfgcn.transsync;
 
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
@@ -104,7 +107,11 @@ public final class Config {
     public void save() throws IOException {
         File file = new File(CONFIG_FILE);
         ObjectMapper mapper = new ObjectMapper();
-        mapper.writerWithDefaultPrettyPrinter();
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        mapper.setDefaultPrettyPrinter(
+                new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("    ", DefaultIndenter.SYS_LF))
+        );
+
         mapper.writeValue(file, this);
     }
 

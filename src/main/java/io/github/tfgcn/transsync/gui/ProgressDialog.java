@@ -1,5 +1,7 @@
 package io.github.tfgcn.transsync.gui;
 
+import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
+import io.github.tfgcn.transsync.service.SyncService;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -8,6 +10,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,9 +25,14 @@ public class ProgressDialog extends JDialog {
     @Getter
     private final AtomicBoolean isCancelled;// 用于标记是否需要终止任务
     private boolean isCompleted;// 用于标记任务是否完成
+    private final transient SyncService syncService;
+    private final transient TaskType taskType; // 任务类型
+    private final transient List<?> fileItems;
+    private final transient Boolean force; // 上传译文时的强制参数
 
     private JTable progressTable;
     private DefaultTableModel tableModel;
+    @Getter
     private JProgressBar overallProgress;
     private final int totalFiles;
     @Getter
@@ -32,20 +40,27 @@ public class ProgressDialog extends JDialog {
     private JButton cancelButton;
     private JButton completeButton;
 
-    public ProgressDialog(Frame owner, String title, List<String> fileItems) {
+    public ProgressDialog(Frame owner, String title,
+                          TaskType taskType,
+                          SyncService syncService,
+                          List<?> fileItems,
+                          Boolean force) {
         super(owner, title, true);
         this.isCancelled = new AtomicBoolean(false);
         this.isCompleted = false;
+        this.taskType = taskType;
+        this.syncService = syncService;
+        this.fileItems = fileItems;
+        this.force = force;
         this.totalFiles = fileItems.size();
         this.completedFiles = 0;
 
         // 初始化UI
-        initUI(fileItems);
-
+        initUI(convertToFileNames(fileItems));
         // 设置对话框属性
         setSize(960, 500);
         setLocationRelativeTo(owner);
-        setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE); // 禁止关闭
+        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE); // 禁止关闭
 
         // 添加窗口关闭监听器
         addWindowListener(new WindowAdapter() {
@@ -56,12 +71,20 @@ public class ProgressDialog extends JDialog {
         });
     }
 
+    // 将文件列表转换为显示用的文件名（适配不同文件类型）
+    private List<String> convertToFileNames(List<?> fileItems) {
+        return fileItems.stream().map(item -> {
+            if (item instanceof File file) return file.getName();
+            if (item instanceof FilesDto dto) return dto.getName();
+            return item.toString();
+        }).toList();
+    }
+
     private void initUI(List<String> fileItems) {
-        // 创建主面板（BorderLayout）
+        // 创建主面板
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15)); // 主面板内边距
 
-        // 1. 表格区域（文件上传状态）
         // 表格模型（文件名、状态）
         tableModel = new DefaultTableModel() {
             @Override
@@ -91,12 +114,10 @@ public class ProgressDialog extends JDialog {
         scrollPane.setBorder(BorderFactory.createTitledBorder("文件状态"));
         mainPanel.add(scrollPane, BorderLayout.CENTER); // 表格占满中间区域
 
-
-        // 2. 底部区域（进度条 + 按钮）：核心修复！用垂直BoxLayout整合
+        // 2. 底部区域（进度条 + 按钮）
         JPanel bottomPanel = new JPanel();
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS)); // 垂直排列
         bottomPanel.setBorder(new EmptyBorder(10, 0, 0, 0)); // 顶部间距（与表格分隔）
-
 
         // 2.1 进度条面板（包含进度条和计数文本）
         JPanel progressPanel = new JPanel(new BorderLayout(10, 0));
@@ -110,10 +131,16 @@ public class ProgressDialog extends JDialog {
         progressPanel.add(overallProgress, BorderLayout.CENTER);
         bottomPanel.add(progressPanel); // 进度条添加到底部容器
 
-
         // 2.2 按钮面板（取消/完成按钮）
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBorder(new EmptyBorder(10, 0, 0, 0)); // 顶部间距（与进度条分隔）
+
+        JButton startButton = new JButton("开始");
+        customizeButton(startButton, GREEN_BUTTON_COLOR);
+        startButton.addActionListener(e -> {
+            startButton.setVisible(false); // 隐藏开始按钮
+            new Thread(this::executeTask).start(); // 启动任务线程
+        });
 
         // 取消按钮
         cancelButton = new JButton("取消");
@@ -126,10 +153,12 @@ public class ProgressDialog extends JDialog {
         completeButton.addActionListener(e -> dispose()); // 关闭对话框
         completeButton.setVisible(false);
 
+        buttonPanel.add(startButton);
+        buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
         buttonPanel.add(cancelButton);
-        buttonPanel.add(Box.createRigidArea(new Dimension(10, 0))); // 按钮间距
+        buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
         buttonPanel.add(completeButton);
-        bottomPanel.add(buttonPanel); // 按钮添加到底部容器
+        bottomPanel.add(buttonPanel);
 
 
         // 3. 组装主面板：底部容器整体添加到SOUTH方位
@@ -146,9 +175,11 @@ public class ProgressDialog extends JDialog {
         button.setPreferredSize(new Dimension(100, 30));
         // 鼠标悬停效果
         button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 button.setBackground(bgColor.darker());
             }
+            @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 button.setBackground(bgColor);
             }
@@ -156,23 +187,19 @@ public class ProgressDialog extends JDialog {
     }
 
     // 更新单个文件状态
-    public void updateFileStatus(int index, String status) {
-        // 确保UI更新在EDT线程（Swing线程安全）
-        SwingUtilities.invokeLater(() -> {
-            tableModel.setValueAt(status, index, 1);
+    private void updateFileStatus(int index, String status) {
+        tableModel.setValueAt(status, index, 1);
 
-            // 自动滚动到当前更新的行
-            scrollToRow(index);
+        // 自动滚动到当前更新的行
+        scrollToRow(index);
 
-            if (status.startsWith("完成") || status.startsWith("失败") || status.startsWith("跳过")) {
-                completedFiles++;
-                overallProgress.setValue(completedFiles);
-                // 同步进度条文本（如 "3/5 (60%)"）
-                overallProgress.setString(completedFiles + "/" + totalFiles + " (" +
-                        (totalFiles == 0 ? 0 : (completedFiles * 100 / totalFiles)) + "%)");
-            }
-
-        });
+        if (status.startsWith("完成") || status.startsWith("失败") || status.startsWith("跳过")) {
+            completedFiles++;
+            overallProgress.setValue(completedFiles);
+            // 同步进度条文本（如 "3/5 (60%)"）
+            overallProgress.setString(completedFiles + "/" + totalFiles + " (" +
+                    (totalFiles == 0 ? 0 : (completedFiles * 100 / totalFiles)) + "%)");
+        }
     }
 
     // 滚动到指定行
@@ -205,7 +232,7 @@ public class ProgressDialog extends JDialog {
         }
     }
 
-    // 处理窗口关闭操作（不变）
+    // 处理窗口关闭操作
     private void handleWindowClose() {
         if (isCompleted) {
             dispose();
@@ -214,13 +241,58 @@ public class ProgressDialog extends JDialog {
         }
     }
 
-    // 任务结束时更新按钮状态（不变）
-    public void onTaskFinished() {
+    // 核心：执行任务逻辑
+    private void executeTask() {
+        for (int i = 0; i < fileItems.size(); i++) {
+            // 检查是否取消，若取消则标记剩余文件状态
+            if (isCancelled.get()) {
+                for (int j = i; j < fileItems.size(); j++) {
+                    int finalJ = j;
+                    SwingUtilities.invokeLater(() -> updateFileStatus(finalJ, "已取消"));
+                }
+                break;
+            }
+
+            Object file = fileItems.get(i);
+            int index = i;
+            try {
+                // 更新当前文件状态为“进行中”（UI线程）
+                SwingUtilities.invokeLater(() -> updateFileStatus(index, "进行中"));
+
+                // 根据任务类型执行具体操作
+                String result;
+                switch (taskType) {
+                    case UPLOAD_ORIGINALS: {
+                        result = syncService.uploadOriginalFile((File) file);
+                        break;
+                    }
+                    case UPLOAD_TRANSLATIONS: {
+                        result = syncService.uploadTranslation((FilesDto) file, force);
+                        break;
+                    }
+                    case DOWNLOAD_TRANSLATIONS: {
+                        result = syncService.downloadTranslation((FilesDto) file);
+                        break;
+                    }
+                    default:
+                        result = "跳过 - 未知任务";
+                }
+
+                // 更新当前文件状态为“成功/跳过”（UI线程）
+                SwingUtilities.invokeLater(() -> updateFileStatus(index, result));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : "未知错误";
+                // 更新当前文件状态为“失败”（UI线程）
+                SwingUtilities.invokeLater(() -> updateFileStatus(index, "失败: " + errorMsg));
+            }
+        }
+
+        // 任务结束：更新对话框状态
         SwingUtilities.invokeLater(() -> {
+            isCompleted = true;
             cancelButton.setVisible(false);
             completeButton.setVisible(true);
-            isCompleted = true;
-            setTitle(isCancelled.get() ? getTitle() + " - 已取消" : getTitle() + " - 完成");
+            setTitle(getTitle() + (isCancelled.get() ? " - 已取消" : " - 完成"));
         });
     }
 }

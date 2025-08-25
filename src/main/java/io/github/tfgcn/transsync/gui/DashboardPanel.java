@@ -3,28 +3,24 @@ package io.github.tfgcn.transsync.gui;
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.api.StringsApi;
-import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
+import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 import io.github.tfgcn.transsync.service.SyncService;
-import org.apache.commons.collections4.CollectionUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_MESSAGE;
 import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_TITLE;
 
 public class DashboardPanel extends JPanel {
 
-    private final Config config;
+    private final transient Config config;
 
     private ProjectInfoPanel projectInfoPanel;
     private JLabel paratranzStatusLabel;
@@ -65,10 +61,8 @@ public class DashboardPanel extends JPanel {
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
-        gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.NONE;
 
-        // 1. 中间核心区域 - 项目信息面板（突出显示）
+        // 1. 中间核心区域 - 项目信息面板
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.fill = GridBagConstraints.NONE;
@@ -120,101 +114,35 @@ public class DashboardPanel extends JPanel {
     public void startDownloadTranslations() {
         disableButtons();
 
-        new Thread(() -> {
-            AtomicReference<ProgressDialog> progressDialog = new AtomicReference<>();
+        try {
+            SyncService service = getSyncService();
 
-            try {
-                // 执行上传同步逻辑
-                SyncService service = new SyncService();
-                service.setWorkspace(config.getWorkspace());// 此处会检测工作目录，如果找不到Tools-Modern项目则抛出异常
-                service.setProjectId(config.getProjectId());
-
-                ParatranzApiFactory factory = new ParatranzApiFactory(config);
-                FilesApi filesApi = factory.create(FilesApi.class);
-                service.setFilesApi(filesApi);
-
-                // 扫描远程文件文件
-                List<FilesDto> remoteFiles = service.fetchRemoteFiles();
-                if (CollectionUtils.isEmpty(remoteFiles)) {
-                    SwingUtilities.invokeLater(() -> {
-                        enableButtons();
-                        JOptionPane.showMessageDialog(this, "没有需要下载的文件", "提示", JOptionPane.INFORMATION_MESSAGE);
-                    });
-                    return;
-                }
-                List<String> fileNames = remoteFiles.stream().map(FilesDto::getName).toList();
-
-                // 创建并显示进度对话框
-                SwingUtilities.invokeAndWait(() -> {
-                    progressDialog.set(new ProgressDialog(
-                            (Frame) SwingUtilities.getWindowAncestor(DashboardPanel.this),
-                            "下载译文",
-                            fileNames
-                    ));
-                });
-
-                // 显示对话框
-                SwingUtilities.invokeLater(() -> progressDialog.get().setVisible(true));
-
-                AtomicBoolean isCancelled = progressDialog.get().getIsCancelled();
-
-                // 执行上传操作
-                for (int i = 0; i < remoteFiles.size(); i++) {
-                    // 检查是否已取消，如果是则跳出循环
-                    if (isCancelled.get()) {
-                        // 更新剩余文件状态为"已取消"
-                        for (int j = i; j < fileNames.size(); j++) {
-                            final int idx = j;
-                            SwingUtilities.invokeLater(() ->
-                                    progressDialog.get().updateFileStatus(idx, "已取消")
-                            );
-                        }
-                        break;
-                    }
-
-                    FilesDto remoteFile = remoteFiles.get(i);
-                    final int index = i;
-
-                    // 更新文件状态为"进行中"
-                    SwingUtilities.invokeLater(() -> {
-                        progressDialog.get().updateFileStatus(index, "进行中");
-                    });
-
-                    try {
-                        // 执行下载
-                        String result = service.downloadTranslation(remoteFile);
-                        // 下载成功
-                        SwingUtilities.invokeLater(() ->
-                                progressDialog.get().updateFileStatus(index, result)
-                        );
-                    } catch (Exception ex) {
-                        // 下载失败
-                        final String finalErrorMsg = ex.getMessage() != null ? ex.getMessage() : "未知错误";
-                        SwingUtilities.invokeLater(() ->
-                                progressDialog.get().updateFileStatus(index, "失败: " + finalErrorMsg)
-                        );
-                    }
-                }
-                // 同步完成后更新UI
-                SwingUtilities.invokeLater(() -> {
-                    progressDialog.get().onTaskFinished(); // 关闭对话框
-                    enableButtons();
-
-                    // 刷新项目信息
-                    loadProjectInfo();
-                    updateStatus();
-                });
-            } catch (Exception e) {
-                SwingUtilities.invokeLater(() -> {
-                    if (progressDialog.get() != null) {
-                        progressDialog.get().dispose();
-                    }
-                    enableButtons();
-                    JOptionPane.showMessageDialog(this, "下载译文失败: " + e.getMessage(),
-                            "错误", JOptionPane.ERROR_MESSAGE);
-                });
+            // 3. 获取待处理文件列表
+            List<FilesDto> files = service.fetchRemoteFiles();
+            if (files.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "没有需要下载的译文文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
-        }).start();
+
+            // 4. 创建并显示ProgressDialog
+            ProgressDialog dialog = new ProgressDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(this),
+                    "下载译文",
+                    TaskType.DOWNLOAD_TRANSLATIONS,
+                    service,
+                    files,
+                    null
+            );
+            dialog.setVisible(true);
+
+            // 5. 任务结束后刷新UI
+            loadProjectInfo();
+            updateStatus();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "下载准备失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            enableButtons();
+        }
     }
 
     /**
@@ -228,224 +156,93 @@ public class DashboardPanel extends JPanel {
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         Boolean force = option == JOptionPane.YES_OPTION;
 
-        new Thread(() -> {
-            AtomicReference<ProgressDialog> progressDialog = new AtomicReference<>();
+        try {
+            SyncService service = getSyncService();
 
-            try {
-                // 执行上传同步逻辑
-                SyncService service = new SyncService();
-                service.setWorkspace(config.getWorkspace());// 此处会检测工作目录，如果找不到Tools-Modern项目则抛出异常
-                service.setProjectId(config.getProjectId());
-
-                ParatranzApiFactory factory = new ParatranzApiFactory(config);
-                FilesApi filesApi = factory.create(FilesApi.class);
-                StringsApi stringsApi = factory.create(StringsApi.class);
-                service.setFilesApi(filesApi);
-                service.setStringsApi(stringsApi);
-
-                // 扫描远程文件文件
-                List<FilesDto> remoteFiles = service.fetchRemoteFiles();
-                if (CollectionUtils.isEmpty(remoteFiles)) {
-                    SwingUtilities.invokeLater(() -> {
-                        enableButtons();
-                        JOptionPane.showMessageDialog(this, "没有需要上传的文件", "提示", JOptionPane.INFORMATION_MESSAGE);
-                    });
-                    return;
-                }
-
-                List<String> fileNames = remoteFiles.stream().map(FilesDto::getName).toList();
-
-                // 创建并显示进度对话框
-                SwingUtilities.invokeAndWait(() -> {
-                    progressDialog.set(new ProgressDialog(
-                            (Frame) SwingUtilities.getWindowAncestor(DashboardPanel.this),
-                            "上传译文",
-                            fileNames
-                    ));
-                });
-
-                // 显示对话框
-                SwingUtilities.invokeLater(() -> progressDialog.get().setVisible(true));
-
-                AtomicBoolean isCancelled = progressDialog.get().getIsCancelled();
-
-                // 执行上传操作
-                for (int i = 0; i < remoteFiles.size(); i++) {
-                    // 检查是否已取消，如果是则跳出循环
-                    if (isCancelled.get()) {
-                        // 更新剩余文件状态为"已取消"
-                        for (int j = i; j < fileNames.size(); j++) {
-                            final int idx = j;
-                            SwingUtilities.invokeLater(() ->
-                                    progressDialog.get().updateFileStatus(idx, "已取消")
-                            );
-                        }
-                        break;
-                    }
-                    FilesDto remoteFile = remoteFiles.get(i);
-                    final int index = i;
-
-                    // 更新文件状态为"进行中"
-                    SwingUtilities.invokeLater(() -> {
-                        progressDialog.get().updateFileStatus(index, "进行中");
-                    });
-
-                    try {
-                        // 执行上传
-                        String result = service.uploadTranslation(remoteFile, force);
-                        // 上传译文成功
-                        SwingUtilities.invokeLater(() ->
-                                progressDialog.get().updateFileStatus(index, result)
-                        );
-                    } catch (Exception ex) {
-                        // 上传译文失败
-                        final String finalErrorMsg = ex.getMessage() != null ? ex.getMessage() : "未知错误";
-                        SwingUtilities.invokeLater(() ->
-                                progressDialog.get().updateFileStatus(index, "失败: " + finalErrorMsg)
-                        );
-                    }
-                }
-                // 同步完成后更新UI
-                SwingUtilities.invokeLater(() -> {
-                    progressDialog.get().onTaskFinished(); // 关闭对话框
-                    enableButtons();
-
-                    // 刷新项目信息
-                    loadProjectInfo();
-                    updateStatus();
-                });
-            } catch (Exception e) {
-                SwingUtilities.invokeLater(() -> {
-                    if (progressDialog.get() != null) {
-                        progressDialog.get().dispose();
-                    }
-                    enableButtons();
-                    JOptionPane.showMessageDialog(this, "上传译文失败: " + e.getMessage(),
-                            "错误", JOptionPane.ERROR_MESSAGE);
-                });
+            // 3. 获取待处理文件列表
+            List<FilesDto> files = service.fetchRemoteFiles();
+            if (files.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "没有需要上传的译文文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
-        }).start();
+
+            // 4. 创建并显示ProgressDialog
+            ProgressDialog dialog = new ProgressDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(this),
+                    "上传译文",
+                    TaskType.UPLOAD_TRANSLATIONS,
+                    service,
+                    files,
+                    force
+            );
+            dialog.setVisible(true);
+
+            // 5. 任务结束后刷新UI
+            loadProjectInfo();
+            updateStatus();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "上传准备失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            enableButtons();
+        }
     }
 
     /**
      * 上传原文逻辑
      */
     public void startUploadOriginals() {
-        disableButtons();
+        try {
+            disableButtons();
 
-        new Thread(() -> {
-            AtomicReference<ProgressDialog> progressDialog = new AtomicReference<>();
+            // 1. 初始化SyncService并配置
+            SyncService service = getSyncService();
 
-            try {
-                // 执行上传同步逻辑
-                SyncService service = new SyncService();
-                service.setWorkspace(config.getWorkspace());// 此处会检测工作目录，如果找不到Tools-Modern项目则抛出异常
-                service.setProjectId(config.getProjectId());
-
-                ParatranzApiFactory factory = new ParatranzApiFactory(config);
-                FilesApi filesApi = factory.create(FilesApi.class);
-                service.setFilesApi(filesApi);
-
-                // 扫描本地文件
-                List<File> files = service.getOriginalFiles();
-                if (CollectionUtils.isEmpty(files)) {
-                    SwingUtilities.invokeLater(() -> {
-                        enableButtons();
-                        JOptionPane.showMessageDialog(this, "没有需要上传的文件", "提示", JOptionPane.INFORMATION_MESSAGE);
-                    });
-                    return;
-                }
-
-                List<String> fileNames = service.getRemoteFilePaths(files);
-
-                // 创建并显示进度对话框
-                SwingUtilities.invokeAndWait(() -> {
-                    progressDialog.set(new ProgressDialog(
-                            (Frame) SwingUtilities.getWindowAncestor(DashboardPanel.this),
-                            "上传原文",
-                            fileNames
-                    ));
-                });
-
-                // 显示对话框
-                SwingUtilities.invokeLater(() -> progressDialog.get().setVisible(true));
-
-                AtomicBoolean isCancelled = progressDialog.get().getIsCancelled();
-
-                // 读取远程文件，建立缓存
-                service.fetchRemoteFiles();
-
-                // 执行上传操作
-                for (int i = 0; i < files.size(); i++) {
-                    // 检查是否已取消，如果是则跳出循环
-                    if (isCancelled.get()) {
-                        // 更新剩余文件状态为"已取消"
-                        for (int j = i; j < fileNames.size(); j++) {
-                            final int idx = j;
-                            SwingUtilities.invokeLater(() ->
-                                    progressDialog.get().updateFileStatus(idx, "已取消")
-                            );
-                        }
-                        break;
-                    }
-                    File file = files.get(i);
-                    final int index = i;
-
-                    // 更新文件状态为"进行中"
-                    SwingUtilities.invokeLater(() -> {
-                        progressDialog.get().updateFileStatus(index, "进行中");
-                    });
-
-                    try {
-                        // 执行上传
-                        String result = service.uploadOriginalFile(file);
-                        // 上传成功
-                        SwingUtilities.invokeLater(() ->
-                                progressDialog.get().updateFileStatus(index, result)
-                        );
-                    } catch (Exception ex) {
-                        // 上传失败
-                        final String finalErrorMsg = ex.getMessage() != null ? ex.getMessage() : "未知错误";
-                        SwingUtilities.invokeLater(() ->
-                                progressDialog.get().updateFileStatus(index, "失败: " + finalErrorMsg)
-                        );
-                    }
-                }
-                // 同步完成后更新UI
-                SwingUtilities.invokeLater(() -> {
-                    progressDialog.get().onTaskFinished(); // 关闭对话框
-                    enableButtons();
-
-                    // 刷新项目信息
-                    loadProjectInfo();
-                    updateStatus();
-                });
-            } catch (Exception e) {
-                SwingUtilities.invokeLater(() -> {
-                    if (progressDialog.get() != null) {
-                        progressDialog.get().dispose();
-                    }
-                    enableButtons();
-                    JOptionPane.showMessageDialog(this, "上传原文失败: " + e.getMessage(),
-                            "错误", JOptionPane.ERROR_MESSAGE);
-                });
+            // 2. 获取待处理文件列表（提前检查，无文件则提示）
+            List<File> files = service.getOriginalFiles();
+            if (files.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "没有需要上传的原文文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
-        }).start();
+
+            // 3. 预先加载远程文件缓存（避免任务中重复加载）
+            service.fetchRemoteFiles();
+
+            // 4. 创建并显示ProgressDialog（任务逻辑交给对话框）
+            ProgressDialog dialog = new ProgressDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(this),
+                    "上传原文",
+                    TaskType.UPLOAD_ORIGINALS,
+                    service,
+                    files,
+                    null // 无需force参数
+            );
+            dialog.setVisible(true); // 模态显示，对话框关闭后再执行后续操作
+
+            // 5. 任务结束后刷新UI
+            loadProjectInfo();
+            updateStatus();
+
+        } catch (Exception e) {
+            // 初始化失败时提示
+            JOptionPane.showMessageDialog(this, "上传准备失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            enableButtons(); // 确保按钮恢复可用
+        }
     }
 
-    private void disableButtons() {
+    public void disableButtons() {
         uploadOriginalsButton.setEnabled(false);
         uploadTranslationsButton.setEnabled(false);
         downloadTranslationsButton.setEnabled(false);
     }
 
-    private void enableButtons() {
+    public void enableButtons() {
         uploadOriginalsButton.setEnabled(true);
         uploadTranslationsButton.setEnabled(true);
         downloadTranslationsButton.setEnabled(true);
     }
 
-    private void updateStatus() {
+    public void updateStatus() {
         // 检查Paratranz连接状态
         new Thread(() -> {
             try {
@@ -459,7 +256,7 @@ public class DashboardPanel extends JPanel {
         }).start();
     }
 
-    private void loadProjectInfo() {
+    public void loadProjectInfo() {
         // 加载项目信息并更新面板
         new Thread(() -> {
             try {
@@ -479,5 +276,21 @@ public class DashboardPanel extends JPanel {
         this.config.merge(config);
         updateStatus();
         loadProjectInfo(); // 配置更新后重新加载项目信息
+    }
+
+    /**
+     * 获取一个新的 SyncService 实例
+     * @return
+     * @throws IOException
+     */
+    public SyncService getSyncService() throws IOException {
+        SyncService service = new SyncService();
+        service.setWorkspace(config.getWorkspace());
+        service.setProjectId(config.getProjectId());
+
+        ParatranzApiFactory factory = new ParatranzApiFactory(config);
+        service.setFilesApi(factory.create(FilesApi.class));
+        service.setStringsApi(factory.create(StringsApi.class));
+        return service;
     }
 }

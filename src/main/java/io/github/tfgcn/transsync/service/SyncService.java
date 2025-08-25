@@ -15,6 +15,7 @@ import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.files.FileUploadRespDto;
 import io.github.tfgcn.transsync.paratranz.model.files.TranslationDto;
 import io.github.tfgcn.transsync.paratranz.model.strings.StringItem;
+import io.github.tfgcn.transsync.service.model.DownloadTranslationResult;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -22,12 +23,13 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.io.FileUtils;
 import retrofit2.Response;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static io.github.tfgcn.transsync.Constants.*;
@@ -60,7 +62,7 @@ public class SyncService {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         objectMapper.setDefaultPrettyPrinter(
-                new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("    ", "\r\n"))
+                new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("    ", DefaultIndenter.SYS_LF))
         );
 
         this.remoteFiles = Collections.emptyList();
@@ -84,13 +86,6 @@ public class SyncService {
         }
         this.workDir = workspaceFolder.getCanonicalPath().replace("\\", SEPARATOR);
         log.info("set workdir to:{}", workDir);
-
-        // check language folder exists
-        File languageFolder = new File(workDir + SEPARATOR + FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
-        if (!languageFolder.exists()) {
-            log.warn("folder not found: {}", languageFolder);
-            throw new IOException(Constants.MSG_FOLDER_NOT_FOUND + ":" + FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
-        }
     }
 
     /**
@@ -309,7 +304,7 @@ public class SyncService {
      */
     public void downloadTranslations() throws IOException, ApiException {
         // 扫描远程文件文件
-        List<FilesDto> remoteFiles = fetchRemoteFiles();
+        fetchRemoteFiles();
 
         // 执行上传操作
         for (FilesDto remoteFile : remoteFiles) {
@@ -328,8 +323,12 @@ public class SyncService {
             return "跳过 - 无翻译";
         }
 
-        saveTranslations(remoteFile, translations);
-        return "完成";
+        DownloadTranslationResult result = saveTranslations(remoteFile, translations);
+        if ("skip".equals(result.getStatus())) {
+            return "跳过 - 未更新 " + formatFileSize(result.getBytes());
+        } else {
+            return "完成 - " + formatFileSize(result.getBytes());
+        }
     }
 
     /**
@@ -337,9 +336,12 @@ public class SyncService {
      *
      * @param remoteFile 源文件
      * @param translations 翻译结果
+     * @return 文件大小
      * @throws IOException 保存失败时抛出
      */
-    public void saveTranslations(FilesDto remoteFile, List<TranslationDto> translations) throws IOException {
+    public DownloadTranslationResult saveTranslations(FilesDto remoteFile, List<TranslationDto> translations) throws IOException {
+        DownloadTranslationResult result = new DownloadTranslationResult();
+
         // 创建一个 Map 用于存储翻译结果，使用 LinkedHashMap 保持插入顺序。
         Map<String, String> map = new LinkedHashMap<>();
         for (TranslationDto item : translations) {
@@ -351,36 +353,35 @@ public class SyncService {
             }
         }
 
-        String relativePath = remoteFile.getName();
-        String absolutePath = workDir + SEPARATOR + relativePath;
-        File file = new File(absolutePath);
+        String body = objectMapper.writeValueAsString(map);
 
-        // 检测父目录是否存在，不存在则创建
-        File parentDir = file.getParentFile();
-        if (!parentDir.exists() && !parentDir.mkdirs()) {
-            log.warn("创建目录失败: {}", parentDir.getAbsolutePath());
-            throw new IOException("创建目录失败: " + parentDir.getAbsolutePath());
-        }
+        File file = new File(workDir + SEPARATOR + remoteFile.getName());
+        FileUtils.createParentDirectories(file);
 
+        // 文件存在
         if (file.exists()) {
-            // 文件存在
-            String body = objectMapper.writeValueAsString(map);
             // 比较文件内容是否更新
             try (FileInputStream fis = new FileInputStream(file)) {
                 String md5 = DigestUtils.md5Hex(fis);
                 String downloadMd5 = DigestUtils.md5Hex(body);
                 if (md5.equals(downloadMd5)) {
-                    log.info("文件未更新: {}", relativePath);
+                    log.info("文件未更新: {}", remoteFile.getName());
+                    result.setStatus("skip");
                 } else {
                     objectMapper.writeValue(file, map);
-                    log.info("文件已更新: {}", relativePath);
+                    log.info("文件已更新: {}", remoteFile.getName());
+                    result.setStatus("update");
                 }
             }
         } else {
             // 文件不存在，直接写入
             objectMapper.writeValue(file, map);
-            log.info("文件已保存: {}", relativePath);
+            log.info("文件已保存: {}", remoteFile.getName());
+            result.setStatus("create");
         }
+
+        result.setBytes(body.getBytes(StandardCharsets.UTF_8).length);
+        return result;
     }
 
     /**
