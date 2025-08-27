@@ -1,5 +1,6 @@
 package io.github.tfgcn.transsync.gui;
 
+import io.github.tfgcn.transsync.I18n;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +56,7 @@ public class LogPanel extends JPanel {
     
     public LogPanel() {
         initComponents();
+        setLocalizedText();
         setupLayout();
         setupEventHandlers();
         startLogConsumer();
@@ -222,13 +224,18 @@ public class LogPanel extends JPanel {
     // 清空日志
     private void clearLogs() {
         int result = JOptionPane.showConfirmDialog(this,
-            "确定要清空所有日志吗？",
-            "清空日志",
+                I18n.getString("dialog.clearLog.message"),// "确定要清空所有日志吗？"
+            I18n.getString("dialog.clearLog.title"),// "清空日志",
             JOptionPane.YES_NO_OPTION);
         
         if (result == JOptionPane.YES_OPTION) {
             logTextPane.setText("");
             logQueue.clear();
         }
+    }
+
+    private void setLocalizedText() {
+        clearButton.setText(I18n.getString("panel.log.button.clear"));
+        autoScrollCheckBox.setText(I18n.getString("panel.log.checkbox.autoScroll"));
     }
 }

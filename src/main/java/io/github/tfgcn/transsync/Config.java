@@ -14,6 +14,7 @@ import retrofit2.Response;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
@@ -87,7 +88,7 @@ public final class Config {
         } else {
             // read from file
             Gson gson = new GsonBuilder().create();
-            config = gson.fromJson(new FileReader(file, StandardCharsets.UTF_8), Config.class);
+            config = gson.fromJson(new InputStreamReader(FileUtils.openInputStream(file), StandardCharsets.UTF_8), Config.class);
 
             // override with environment variables
             getEnv(ENV_PARATRANZ_TOKEN).ifPresent(config::setToken);

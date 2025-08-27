@@ -2,6 +2,7 @@ package io.github.tfgcn.transsync.gui;
 
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.Constants;
+import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.service.model.FileScanRule;
 
 import javax.swing.*;
@@ -30,6 +31,7 @@ public class ConfigPanel extends JPanel {
         this.config = config;
 
         initComponents();
+        setLocalizedText();
         setupLayout();
         setupEventHandlers();
         loadConfig();
@@ -210,7 +212,7 @@ public class ConfigPanel extends JPanel {
                 rule.getTranslationPattern(),
                 rule.getSrcLang(),
                 rule.getDestLang(),
-                "编辑"
+                "button.edit"
             };
             rulesTableModel.addRow(row);
         }
@@ -262,7 +264,7 @@ public class ConfigPanel extends JPanel {
                 setForeground(table.getForeground());
                 setBackground(UIManager.getColor("Button.background"));
             }
-            setText((value == null) ? "" : value.toString());
+            setText((value == null) ? "" : I18n.getString(value.toString()));
             return this;
         }
     }
@@ -315,5 +317,19 @@ public class ConfigPanel extends JPanel {
             isPushed = false;
             return super.stopCellEditing();
         }
+    }
+
+    private void setLocalizedText() {
+        browseButton.setText(I18n.getString("button.browse"));
+        saveButton.setText(I18n.getString("button.save"));
+        addRuleButton.setText(I18n.getString("button.addRule"));
+        rulesTable.getColumnModel().getColumn(4).setCellRenderer(new ButtonRenderer());
+        rulesTable.getColumnModel().getColumn(4).setCellEditor(new ButtonEditor(new JCheckBox()));
+
+        rulesTable.getColumnModel().getColumn(0).setHeaderValue(I18n.getString("table.header.sourcePattern"));
+        rulesTable.getColumnModel().getColumn(1).setHeaderValue(I18n.getString("table.header.translationPattern"));
+        rulesTable.getColumnModel().getColumn(2).setHeaderValue(I18n.getString("table.header.srcLang"));
+        rulesTable.getColumnModel().getColumn(3).setHeaderValue(I18n.getString("table.header.destLang"));
+        rulesTable.getColumnModel().getColumn(4).setHeaderValue(I18n.getString("table.header.action"));
     }
 }

@@ -12,8 +12,8 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.List;
-import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class ProgressDialog extends JDialog {
 
@@ -75,10 +75,14 @@ public class ProgressDialog extends JDialog {
     // 将文件列表转换为显示用的文件名（适配不同文件类型）
     private List<String> convertToFileNames(List<?> fileItems) {
         return fileItems.stream().map(item -> {
-            if (item instanceof FileScanResult file) return file.getTranslationFilePath();
-            if (item instanceof FilesDto dto) return dto.getName();
+            if (item instanceof FileScanResult) {
+                return ((FileScanResult) item).getTranslationFilePath();
+            }
+            if (item instanceof FilesDto) {
+                return ((FilesDto) item).getName();
+            }
             return item.toString();
-        }).toList();
+        }).collect(Collectors.toList());
     }
 
     private void initUI(List<String> fileItems) {
@@ -98,10 +102,7 @@ public class ProgressDialog extends JDialog {
 
         // 添加文件数据
         for (String item : fileItems) {
-            tableModel.addRow(new Vector<>() {{
-                add(item);
-                add("等待");
-            }});
+            tableModel.addRow(new Object[] {item, "等待"});
         }
 
         // 创建表格并设置滚动面板
