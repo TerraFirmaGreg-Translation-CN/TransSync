@@ -68,11 +68,11 @@ public final class Constants {
         if (size < 1024) {
             return size + " B";
         } else if (size < 1048576) {
-            return size / 1024.0 + " KiB";
+            return size / 1024 + " KiB";
         } else if (size < 1073741824) {
-            return size / 1048576.0 + " MiB";
+            return size / 1048576 + " MiB";
         } else {
-            return size / 1073741824.0 + " GiB";
+            return size / 1073741824 + " GiB";
         }
     }
 }

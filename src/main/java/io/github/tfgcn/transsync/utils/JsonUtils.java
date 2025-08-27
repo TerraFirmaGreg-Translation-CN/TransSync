@@ -19,7 +19,9 @@ public final class JsonUtils {
 
     static {
         GSON = new GsonBuilder()
-                .setFormattingStyle(FormattingStyle.PRETTY.withIndent("    "))
+                .setFormattingStyle(FormattingStyle.PRETTY
+                        .withIndent("    ")
+                        .withNewline(System.lineSeparator()))
                 .serializeNulls()
                 .disableHtmlEscaping()
                 .create();
