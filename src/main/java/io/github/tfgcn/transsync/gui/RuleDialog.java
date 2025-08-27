@@ -12,6 +12,7 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -241,6 +242,8 @@ public class RuleDialog extends JDialog {
         FileScanService scanService = new FileScanService();
         try {
             List<FileScanResult> results = scanService.scanAndMapFiles(request);
+            // 按照源文件路径进行排序
+            results.sort(Comparator.comparing(FileScanResult::getSourceFilePath));
             updateTrees(results);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "扫描失败:" + ex.getMessage(),

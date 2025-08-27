@@ -8,9 +8,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -78,9 +76,6 @@ public class FileScanService {
             results.add(result);
         }
 
-        // 按照源文件路径进行排序
-        results.sort(Comparator.comparing(FileScanResult::getSourceFilePath));
-
         return results;
     }
 
@@ -88,19 +83,17 @@ public class FileScanService {
      * 查找匹配模式的文件
      */
     private List<Path> findFiles(Path baseDir, String pattern, List<String> ignores) throws IOException {
-        List<Path> result = new ArrayList<>();
-
         // 解析glob模式
         String globPattern = pattern;
         // 将rootDir声明为final
-        final Path rootDir;
+        Path rootDir;
 
         // 提取glob模式中的根目录（第一个通配符之前的部分）
         int globStart = pattern.indexOf('*');
         int globQuestion = pattern.indexOf('?');
         int firstWildcard = Integer.MAX_VALUE;
 
-        if (globStart != -1) firstWildcard = Math.min(firstWildcard, globStart);
+        if (globStart != -1) firstWildcard = globStart;
         if (globQuestion != -1) firstWildcard = Math.min(firstWildcard, globQuestion);
 
         if (firstWildcard != Integer.MAX_VALUE) {
@@ -113,62 +106,12 @@ public class FileScanService {
             rootDir = baseDir;
         }
 
-        // 使用Java NIO的Glob匹配器
-        final PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
-
-        // 添加忽略能力
-        final List<PathMatcher> ignoreMatchers;
-        if (ignores == null || ignores.isEmpty()) {
-            ignoreMatchers = Collections.emptyList();
-        } else {
-            ignoreMatchers = new ArrayList<>(ignores.size());
-            for (String ignore : ignores) {
-                // 支持glob模式的忽略规则，如**/.git/**、*.tmp等
-                ignoreMatchers.add(FileSystems.getDefault().getPathMatcher("glob:" + ignore));
-            }
-        }
+        GlobPatternFileVisitor visitor = new GlobPatternFileVisitor(rootDir, globPattern, ignores);
 
         // 遍历所有文件
-        Files.walkFileTree(rootDir, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                Path relativeDir = rootDir.relativize(dir);
-                // 检查目录是否需要被忽略
-                for (PathMatcher matcher : ignoreMatchers) {
-                    if (matcher.matches(relativeDir)) {
-                        return FileVisitResult.SKIP_SUBTREE; // 跳过整个子目录
-                    }
-                }
-                return FileVisitResult.CONTINUE;
-            }
+        Files.walkFileTree(rootDir, visitor);
 
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                // 获取相对于根目录的路径用于匹配
-                Path relativePath = rootDir.relativize(file);
-
-                // 检查文件是否需要被忽略
-                for (PathMatcher matcher : ignoreMatchers) {
-                    if (matcher.matches(relativePath)) {
-                        return FileVisitResult.CONTINUE; // 忽略该文件
-                    }
-                }
-
-                // 检查文件是否匹配目标模式
-                if (matcher.matches(relativePath)) {
-                    result.add(file);
-                }
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                log.warn("访问文件失败: {}", file, exc);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-
-        return result;
+        return visitor.getResult();
     }
 
     /**
@@ -186,37 +129,27 @@ public class FileScanService {
         Path relativeToWorkspace = workspacePath.relativize(sourceFile);
         List<String> pathSegments = new ArrayList<>();
         relativeToWorkspace.forEach(segment -> pathSegments.add(segment.toString()));
-
-        // 提取文件名（%original_file_name%）
-        String originalFileName = pathSegments.get(pathSegments.size() - 1);
-
-        // 找到源语言文件夹在路径中的位置
-        int langIndex = -1;
-        for (int i = 0; i < pathSegments.size(); i++) {
-            if (pathSegments.get(i).equals(sourceLanguage)) {
-                langIndex = i;
-                break;
-            }
-        }
-
-        if (langIndex == -1) {
-            // 可能文件名是语言，例如 en_us.json
-            if (originalFileName.startsWith(sourceLanguage + ".")) {
-                langIndex = pathSegments.size() - 1;
-            } else {
-                throw new IllegalArgumentException("源文件路径中未找到语言: " + sourceLanguage);
-            }
-        }
+        int segmentCount = pathSegments.size();
 
         // 提取语言文件夹之前的路径部分（%original_path_pre%）
-        List<String> preSegments = pathSegments.subList(0, langIndex);
-        String originalPathPre = String.join("/", preSegments);
-
+        String originalPathPre;
         // 提取语言文件夹之后、文件名之前的路径部分（%original_path%）
-        // 注意，由于源语言可能存在于文件名上 (例如：en_us.json)，因此postSegments可能不存在
         String originalPath;
-        if (langIndex < pathSegments.size() - 1) {
-            List<String> postSegments = pathSegments.subList(langIndex + 1, pathSegments.size() - 1);
+        // 提取文件名（%original_file_name%）
+        String originalFileName = pathSegments.get(segmentCount - 1);
+
+        // 查找源语言的位置
+        int langIndex = getSrcLangIndex(sourceLanguage, pathSegments, originalFileName);
+        if (langIndex > -1) {
+            List<String> preSegments = pathSegments.subList(0, langIndex);
+            originalPathPre = String.join("/", preSegments);
+        } else {
+            originalPathPre = "";// Not found
+        }
+
+        // 注意，由于源语言可能存在于文件名上 (例如：en_us.json)，因此postSegments可能不存在
+        if (langIndex < segmentCount - 1) {
+            List<String> postSegments = pathSegments.subList(langIndex + 1, segmentCount - 1);
             originalPath = String.join("/", postSegments);
         } else {
             originalPath = "";
@@ -230,5 +163,32 @@ public class FileScanService {
                 .replace("%original_file_name%", originalFileName);
 
         return workspacePath.resolve(targetPathStr);
+    }
+
+    /**
+     * 获取源语言在路径中的索引
+     * @param sourceLanguage 源语言，例如 en_us
+     * @param pathSegments 路径片段
+     * @param originalFileName 文件名
+     * @return 源语言出现在路径中的索引，如果没有找到，则返回 -1。
+     */
+    private int getSrcLangIndex(String sourceLanguage, List<String> pathSegments, String originalFileName) {
+        int langIndex = -1;
+        for (int i = 0; i < pathSegments.size(); i++) {
+            if (pathSegments.get(i).equals(sourceLanguage)) {
+                langIndex = i;
+                break;
+            }
+        }
+
+        if (langIndex == -1) {
+            // 可能文件名是语言，例如 en_us.json
+            if (originalFileName.startsWith(sourceLanguage + ".")) {
+                langIndex = pathSegments.size() - 1;
+            } else {
+                log.debug("Source language not found in path: {}", sourceLanguage);
+            }
+        }
+        return langIndex;
     }
 }

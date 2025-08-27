@@ -116,6 +116,7 @@ public class SyncService {
 
         List<FileScanResult> fileList = new ArrayList<>(100);
 
+        Set<String> distinct = new HashSet<>();
         for (FileScanRule rule : rules) {
             FileScanRequest request = new FileScanRequest();
             request.setWorkspace(workDir);
@@ -126,12 +127,21 @@ public class SyncService {
             request.setIgnores(rule.getIgnores());
             try {
                 List<FileScanResult> results = fileScanService.scanAndMapFiles(request);
-                fileList.addAll(results);
+                for (FileScanResult item : results) {
+                    if (!distinct.contains(item.getTranslationFilePath())) {
+                        distinct.add(item.getTranslationFilePath());
+                        fileList.add(item);
+                    } else {
+                        log.debug("Duplicated file:{}", item.getTranslationFilePath());
+                    }
+                }
             } catch (Exception ex) {
                 log.error("扫描文件失败, rule:{}", rule, ex);
             }
         }
 
+        // 按照源文件路径进行排序
+        fileList.sort(Comparator.comparing(FileScanResult::getSourceFilePath));
         return fileList;
     }
 
