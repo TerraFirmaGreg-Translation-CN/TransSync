@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.UsersApi;
-import io.github.tfgcn.transsync.paratranz.interceptor.LoggingInterceptor;
 import io.github.tfgcn.transsync.paratranz.model.users.UsersDto;
 import io.github.tfgcn.transsync.service.model.FileScanRule;
 import lombok.Getter;
@@ -18,11 +17,12 @@ import retrofit2.Response;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import static io.github.tfgcn.transsync.Constants.*;
 
 /**
- * 配置文件，单例
+ * Configurations
  *
  * @author yanmaoyuan
  */
@@ -33,21 +33,31 @@ public final class Config {
 
     private static Config instance;
 
+    /**
+     * paratranz token, get it from <a href="https://paratranz.cn/users/my">paratranz.cn</a>
+     */
     private String token;
+    /**
+     * paratranz project id
+     */
     private Integer projectId;
+    /**
+     * @see io.github.tfgcn.transsync.paratranz.interceptor.LoggingInterceptor.Level
+     */
     private String httpLogLevel;
+    /**
+     * The directory where the source files are located, and where the translated files are stored.
+     */
     private String workspace;
+    /**
+     * The rules for scanning files.
+     */
     private List<FileScanRule> rules;
 
-    // 私有构造函数，防止外部实例化
     private Config() {
+        // for initialization only
     }
 
-    /**
-     * 获取单例实例
-     * @return Config单例对象
-     * @throws IOException 加载配置文件时可能发生的异常
-     */
     public static synchronized Config getInstance() throws IOException {
         if (instance == null) {
             instance = loadConfig();
@@ -61,34 +71,41 @@ public final class Config {
     private static Config loadConfig() throws IOException {
         File file = new File(CONFIG_FILE);
 
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        mapper.writerWithDefaultPrettyPrinter();
-
         Config config;
         if (!file.exists()) {
-            // 不存在则创建
             if (!file.createNewFile()) {
                 log.error("failed to create file: {}", CONFIG_FILE);
                 throw new IOException(MSG_FAILED_CREATE_FILE);
             }
 
-            // 默认配置
+            // Create config file from environment variables, or else use defaults.
             config = new Config();
-            config.setToken(MSG_GO_GET_TOKEN);
-            config.setProjectId(DEFAULT_PROJECT_ID);
-            config.setHttpLogLevel(LoggingInterceptor.Level.NONE.name());
-            config.setWorkspace(DEFAULT_WORKSPACE);
+            config.setToken(getEnv(ENV_PARATRANZ_TOKEN).orElse(MSG_GO_GET_TOKEN));
+            config.setProjectId(getEnvAsInt(ENV_PARATRANZ_PROJECT_ID).orElse(DEFAULT_PROJECT_ID));
+            config.setHttpLogLevel(getEnv(ENV_HTTP_LOG_LEVEL).orElse(DEFAULT_HTTP_LOG_LEVEL));
+            config.setWorkspace(getEnv(ENV_PARATRANZ_WORKSPACE).orElse(DEFAULT_WORKSPACE));
 
-            // 输出到文件
-            mapper.writeValue(file, config);
+            config.save();
         } else {
-            // 读取JSON文件
+            // read from file
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
             config = mapper.readValue(file, Config.class);
+
+            // override with environment variables
+            getEnv(ENV_PARATRANZ_TOKEN).ifPresent(config::setToken);
+            getEnvAsInt(ENV_PARATRANZ_PROJECT_ID).ifPresent(config::setProjectId);
+            getEnv(ENV_HTTP_LOG_LEVEL).ifPresent(config::setHttpLogLevel);
+            getEnv(ENV_PARATRANZ_WORKSPACE).ifPresent(config::setWorkspace);
         }
         return config;
     }
 
+    /**
+     * Merge new config into current config
+     * @param newConfig new config
+     */
     public void merge(Config newConfig) {
         if (newConfig.getToken() != null) {
             this.token = newConfig.getToken();
@@ -101,6 +118,9 @@ public final class Config {
         }
         if (newConfig.getWorkspace() != null) {
             this.workspace = newConfig.getWorkspace();
+        }
+        if (newConfig.getRules() != null) {
+            this.rules = newConfig.getRules();
         }
     }
 
@@ -116,9 +136,7 @@ public final class Config {
     }
 
     /**
-     * 检查Paratranz是否连接成功
-     * @return true表示连接成功，false表示连接失败
-     * @throws IOException
+     * Check paratranz connection by calling UsersApi#my()
      */
     public boolean checkParatranzConnected() throws IOException {
         ParatranzApiFactory factory = new ParatranzApiFactory(this);
@@ -126,13 +144,34 @@ public final class Config {
         try {
             Response<UsersDto> response = usersApi.my().execute();
             if (response.isSuccessful()) {
-                log.info("Paratranz 登录成功: {}", response.body());
                 return true;
             }
         } catch (IOException e) {
-            log.error("Paratranz 登录失败", e);
+            log.error("Paratranz connection failed", e);
             throw e;
         }
         return false;
+    }
+
+    /**
+     * Get environment variable
+     */
+    private static Optional<String> getEnv(String key) {
+        return Optional.ofNullable(System.getenv(key))
+                .filter(value -> !value.trim().isEmpty());
+    }
+
+    /**
+     * Get environment variable as int
+     */
+    private static Optional<Integer> getEnvAsInt(String key) {
+        return getEnv(key).flatMap(value -> {
+            try {
+                return Optional.of(Integer.parseInt(value));
+            } catch (NumberFormatException e) {
+                log.warn("Value {} of {} is not a valid integer", key, value);
+                return Optional.empty();
+            }
+        });
     }
 }

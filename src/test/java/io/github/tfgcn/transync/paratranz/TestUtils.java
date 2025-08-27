@@ -17,7 +17,7 @@ public final class TestUtils {
     private TestUtils() {}
 
     // 项目ID，默认是TerraFirmaGreg汉化组项目，如果要测试其他项目，请修改这个值
-    public static final Integer PROJECT_ID = Constants.DEFAULT_PROJECT_ID;// change this if you want to test with other projects
+    public static final Integer PROJECT_ID = 15950;// change this if you want to test with other projects
 
     // 测试用文件，存放在项目根目录下
     public static final String TEST_FOLDER = "test";

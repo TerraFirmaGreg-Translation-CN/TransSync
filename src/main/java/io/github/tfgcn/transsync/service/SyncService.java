@@ -156,7 +156,7 @@ public class SyncService {
         // 扫描远程服务器上已有的文件
         fetchRemoteFiles();
 
-        log.info("Scanning language files in: {}", FOLDER_TOOLS_MODERN_LANGUAGE_FILES);
+        log.info("Scanning language files");
         // 扫描语言文件夹下的 en_us 目录，把文本上传到 paratranz
         List<FileScanResult> fileList = getOriginalFiles();
 

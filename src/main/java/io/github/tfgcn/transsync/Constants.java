@@ -1,5 +1,6 @@
 package io.github.tfgcn.transsync;
 
+import io.github.tfgcn.transsync.paratranz.interceptor.LoggingInterceptor;
 import okhttp3.MediaType;
 
 /**
@@ -12,17 +13,20 @@ public final class Constants {
     private Constants() {
     }
 
-    public static final Integer DEFAULT_PROJECT_ID = 15950;
+    public static final Integer DEFAULT_PROJECT_ID = -1;
     public static final String DEFAULT_WORKSPACE = "..";
+    public static final String DEFAULT_HTTP_LOG_LEVEL = LoggingInterceptor.Level.NONE.name();
     public static final String CONFIG_FILE = "config.json";
+
+    // Environments
+    public static final String ENV_PARATRANZ_TOKEN = "PARATRANZ_TOKEN";
+    public static final String ENV_PARATRANZ_PROJECT_ID = "PARATRANZ_PROJECT_ID";
+    public static final String ENV_PARATRANZ_WORKSPACE = "PARATRANZ_WORKSPACE";
+    public static final String ENV_HTTP_LOG_LEVEL = "HTTP_LOG_LEVEL";
 
     public static final String SEPARATOR = "/";
     public static final String EN_US = "en_us";
     public static final String ZH_CN = "zh_cn";
-
-    public static final String FOLDER_TOOLS_MODERN = "Tools-Modern";
-    public static final String FOLDER_TOOLS_MODERN_LANGUAGE_FILES = "Tools-Modern/LanguageMerger/LanguageFiles";
-    public static final String FOLDER_MODPACK_MODERN = "Modpack-Modern";
 
     public static final String MSG_FOLDER_NOT_FOUND = "找不到目录";
     public static final String MSG_FOLDER_INVALID = "非法目录";
@@ -61,8 +65,14 @@ public final class Constants {
     }
 
     public static String formatFileSize(int size) {
-        return size < 1024 ? size + " B" : size < 1024 * 1024 ? String.format("%.2f KiB", size / 1024.0) :
-                size < 1024 * 1024 * 1024 ? String.format("%.2f MiB", size / 1024.0 / 1024.0) :
-                        String.format("%.2f GiB", size / 1024.0 / 1024.0 / 1024.0);
+        if (size < 1024) {
+            return size + " B";
+        } else if (size < 1048576) {
+            return size / 1024.0 + " KiB";
+        } else if (size < 1073741824) {
+            return size / 1048576.0 + " MiB";
+        } else {
+            return size / 1073741824.0 + " GiB";
+        }
     }
 }

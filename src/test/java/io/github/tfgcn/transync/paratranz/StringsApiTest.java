@@ -21,12 +21,12 @@ import static io.github.tfgcn.transync.paratranz.TestUtils.*;
  * @author yanmaoyuan
  */
 @Slf4j
-public class StringsApiTest {
+class StringsApiTest {
 
     static StringsApi stringsApi;
 
     @BeforeAll
-    public static void beforeAll() throws IOException {
+    static void beforeAll() throws IOException {
         ParatranzApiFactory paratranzApiFactory = new ParatranzApiFactory();
         stringsApi = paratranzApiFactory.create(StringsApi.class);
     }
@@ -67,12 +67,4 @@ public class StringsApiTest {
         }
     }
 
-    @Test
-    void testCreateString() throws IOException {
-        StringsDto reqDto = new StringsDto();
-        reqDto.setKey("test_key");
-        reqDto.setOriginal("test_original");
-        reqDto.setTranslation("test_translation");
-        reqDto.setFileId(getTestFileId());
-    }
 }

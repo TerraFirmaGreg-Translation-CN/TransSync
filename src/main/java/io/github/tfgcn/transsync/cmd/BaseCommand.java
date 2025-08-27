@@ -9,23 +9,32 @@ import picocli.CommandLine;
 import java.io.IOException;
 
 /**
- * desc:
+ * desc: 基础命令行参数，用于获取配置
  *
  * @author yanmaoyuan
  */
 @Slf4j
-public abstract class BaseCommand {
+class BaseCommand {
 
-    @CommandLine.Option(names = {"-t", "--token"}, description = "Paratranz Token。前往 https://paratranz.cn/users/my 点击设置获取，并保存到 config.json 配置文件中")
+    @CommandLine.Option(
+            names = {"-t", "--token"},
+            description = "Paratranz Token。前往 https://paratranz.cn/users/my 点击设置获取，并保存到 config.json 配置文件中",
+            defaultValue = "${env:PARATRANZ_TOKEN}")
     protected String token;
 
-    @CommandLine.Option(names = {"-p", "--project-id"}, description = "Paratranz 项目ID.")
+    @CommandLine.Option(
+            names = {"-p", "--project-id"},
+            description = "Paratranz 项目ID.")
     protected Integer projectId;
 
-    @CommandLine.Option(names = {"-w", "--workspace"}, description = "工作目录，Tools-Modern 项目应位于此目录下。", defaultValue = Constants.DEFAULT_WORKSPACE)
+    @CommandLine.Option(
+            names = {"-w", "--workspace"},
+            description = "工作目录，源文件项目应位于此目录下，译文也会存储于此目录。")
     protected String workspace;
 
-    @CommandLine.Option(names = {"-l", "--http-level"}, description = "HTTP日志等级. [NONE, BASIC, HEADERS, BODY]")
+    @CommandLine.Option(
+            names = {"-l", "--http-level"},
+            description = "HTTP日志等级. [NONE, BASIC, HEADERS, BODY]")
     protected LoggingInterceptor.Level httpLogLevel;
 
     protected Config initConfig() throws IOException {
