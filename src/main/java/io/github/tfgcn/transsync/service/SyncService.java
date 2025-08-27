@@ -1,11 +1,6 @@
 package io.github.tfgcn.transsync.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.gson.reflect.TypeToken;
 import io.github.tfgcn.transsync.Constants;
 import io.github.tfgcn.transsync.paratranz.api.StringsApi;
 import io.github.tfgcn.transsync.paratranz.error.ApiException;
@@ -19,18 +14,19 @@ import io.github.tfgcn.transsync.service.model.DownloadTranslationResult;
 import io.github.tfgcn.transsync.service.model.FileScanRequest;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
 import io.github.tfgcn.transsync.service.model.FileScanRule;
+import io.github.tfgcn.transsync.utils.JsonUtils;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import retrofit2.Response;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -43,8 +39,6 @@ import static io.github.tfgcn.transsync.Constants.*;
  */
 @Slf4j
 public class SyncService {
-
-    private final ObjectMapper objectMapper;
 
     @Setter
     private StringsApi stringsApi;
@@ -62,14 +56,6 @@ public class SyncService {
     private final FileScanService fileScanService;
 
     public SyncService() {
-        objectMapper = new ObjectMapper();
-        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        objectMapper.setDefaultPrettyPrinter(
-                new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("    ", DefaultIndenter.SYS_LF))
-        );
-
         this.remoteFiles = Collections.emptyList();
         this.remoteFilesMap = Collections.emptyMap();
 
@@ -103,7 +89,11 @@ public class SyncService {
         log.info("Fetching remote files...");
         // 查询已有的文件列表
         List<FilesDto> fileList = filesApi.getFiles(projectId).execute().body();
-        if (CollectionUtils.isNotEmpty(fileList)) {
+        if (fileList == null || fileList.isEmpty()) {
+            log.info("No remote files found");
+            remoteFilesMap = Collections.emptyMap();
+            remoteFiles = Collections.emptyList();
+        } else {
             remoteFiles = new ArrayList<>(fileList.size());
             remoteFilesMap = new HashMap<>();
             for (FilesDto file : fileList) {
@@ -112,10 +102,6 @@ public class SyncService {
                 log.debug("{}", file.getName());
             }
             log.info("Found remote files: {}", fileList.size());
-        } else {
-            log.info("No remote files found");
-            remoteFilesMap = Collections.emptyMap();
-            remoteFiles = Collections.emptyList();
         }
         return remoteFiles;
     }
@@ -124,7 +110,7 @@ public class SyncService {
      * 获取待上传的文件列表
      */
     public List<FileScanResult> getOriginalFiles() {
-        if (CollectionUtils.isEmpty(rules)) {
+        if (rules == null || rules.isEmpty()) {
             throw new RuntimeException("未配置文件扫描规则，请先配置扫描规则");
         }
 
@@ -255,7 +241,7 @@ public class SyncService {
         // 执行上传操作
         for (FilesDto remoteFile : remoteFiles) {
             List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
-            if (CollectionUtils.isEmpty(translations)) {
+            if (translations == null || translations.isEmpty()) {
                 log.info("缺少翻译: {}", remoteFile.getName());
             } else {
                 saveTranslations(remoteFile, translations);
@@ -265,7 +251,7 @@ public class SyncService {
 
     public String downloadTranslation(FilesDto remoteFile) throws IOException, ApiException {
         List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
-        if (CollectionUtils.isEmpty( translations)) {
+        if (translations == null || translations.isEmpty()) {
             return "跳过 - 无翻译";
         }
 
@@ -299,7 +285,7 @@ public class SyncService {
             }
         }
 
-        String body = objectMapper.writeValueAsString(map);
+        String body = JsonUtils.toJson(map);
 
         File file = new File(workDir + SEPARATOR + remoteFile.getName());
         FileUtils.createParentDirectories(file);
@@ -314,14 +300,14 @@ public class SyncService {
                     log.info("文件未更新: {}", remoteFile.getName());
                     result.setStatus("skip");
                 } else {
-                    objectMapper.writeValue(file, map);
+                    JsonUtils.writeFile(file, map);
                     log.info("文件已更新: {}", remoteFile.getName());
                     result.setStatus("update");
                 }
             }
         } else {
             // 文件不存在，直接写入
-            objectMapper.writeValue(file, map);
+            JsonUtils.writeFile(file, map);
             log.info("文件已保存: {}", remoteFile.getName());
             result.setStatus("create");
         }
@@ -339,7 +325,7 @@ public class SyncService {
     public void uploadTranslations(Boolean force) throws IOException, ApiException {
         fetchRemoteFiles();
 
-        if (CollectionUtils.isEmpty(remoteFiles)) {
+        if (remoteFiles == null || remoteFiles.isEmpty()) {
             log.info("没有远程文件");
             return;
         }
@@ -360,14 +346,14 @@ public class SyncService {
 
         // 读取远程译文
         List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
-        if (CollectionUtils.isEmpty(translations)) {
+        if (translations == null || translations.isEmpty()) {
             log.info("没有远程译文: {}", relativePath);
             return "跳过 - 无需翻译";
         }
 
         // 读取本地汉化文件
-        Map<String, String> map = objectMapper.readValue(file, new TypeReference<>() {
-        });
+        Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+        Map<String, String> map = JsonUtils.readFile(file, mapType);
 
         int count = 0;// 处理词条数
         for (TranslationDto item : translations) {

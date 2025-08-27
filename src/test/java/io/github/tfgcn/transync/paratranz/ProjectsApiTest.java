@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
  * @author yanmaoyuan
  */
 @Slf4j
-public class ProjectsApiTest {
+class ProjectsApiTest {
 
     @Test
     void testGetProjects() throws Exception {

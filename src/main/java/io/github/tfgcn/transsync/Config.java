@@ -1,10 +1,7 @@
 package io.github.tfgcn.transsync;
 
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.UsersApi;
 import io.github.tfgcn.transsync.paratranz.model.users.UsersDto;
@@ -12,10 +9,11 @@ import io.github.tfgcn.transsync.service.model.FileScanRule;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import retrofit2.Response;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -88,10 +86,8 @@ public final class Config {
             config.save();
         } else {
             // read from file
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-            config = mapper.readValue(file, Config.class);
+            Gson gson = new GsonBuilder().create();
+            config = gson.fromJson(new FileReader(file, StandardCharsets.UTF_8), Config.class);
 
             // override with environment variables
             getEnv(ENV_PARATRANZ_TOKEN).ifPresent(config::setToken);
@@ -126,13 +122,11 @@ public final class Config {
 
     public void save() throws IOException {
         File file = new File(CONFIG_FILE);
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        mapper.setDefaultPrettyPrinter(
-                new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("    ", DefaultIndenter.SYS_LF))
-        );
 
-        mapper.writeValue(file, this);
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
+            gson.toJson(this, writer);
+        }
     }
 
     /**

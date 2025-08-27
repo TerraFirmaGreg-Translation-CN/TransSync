@@ -3,7 +3,6 @@ package io.github.tfgcn.transsync.service;
 import io.github.tfgcn.transsync.service.model.FileScanRequest;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -119,14 +118,14 @@ public class FileScanService {
 
         // 添加忽略能力
         final List<PathMatcher> ignoreMatchers;
-        if (CollectionUtils.isNotEmpty(ignores)) {
+        if (ignores == null || ignores.isEmpty()) {
+            ignoreMatchers = Collections.emptyList();
+        } else {
             ignoreMatchers = new ArrayList<>(ignores.size());
             for (String ignore : ignores) {
                 // 支持glob模式的忽略规则，如**/.git/**、*.tmp等
                 ignoreMatchers.add(FileSystems.getDefault().getPathMatcher("glob:" + ignore));
             }
-        } else {
-            ignoreMatchers = Collections.emptyList();
         }
 
         // 遍历所有文件

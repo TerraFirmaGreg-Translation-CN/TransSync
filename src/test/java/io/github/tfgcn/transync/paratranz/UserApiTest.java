@@ -14,7 +14,7 @@ import retrofit2.Response;
  * @author yanmaoyuan
  */
 @Slf4j
-public class UserApiTest {
+class UserApiTest {
 
     @Test
     void testGetMy() throws Exception {

@@ -1,8 +1,5 @@
 package io.github.tfgcn.transsync.paratranz;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.paratranz.error.ErrorHandlingCallAdapterFactory;
 import io.github.tfgcn.transsync.paratranz.interceptor.AuthInterceptor;
@@ -11,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.StringUtils;
 import retrofit2.Retrofit;
-import retrofit2.converter.jackson.JacksonConverterFactory;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.io.IOException;
 
@@ -46,11 +43,6 @@ public class ParatranzApiFactory {
             logLevel = LoggingInterceptor.Level.valueOf(config.getHttpLogLevel().toUpperCase().trim());
         }
 
-        // jackson 对象映射器
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
         authInterceptor = new AuthInterceptor(token);
         loggingInterceptor = new LoggingInterceptor(logLevel);
 
@@ -63,7 +55,7 @@ public class ParatranzApiFactory {
         retrofit = new Retrofit.Builder()
                 .baseUrl("https://paratranz.cn/api/")
                 .client(okHttpClient)
-                .addConverterFactory(JacksonConverterFactory.create(mapper))
+                .addConverterFactory(GsonConverterFactory.create())
                 .addCallAdapterFactory(new ErrorHandlingCallAdapterFactory())
                 .build();
     }
@@ -82,11 +74,6 @@ public class ParatranzApiFactory {
             logLevel = LoggingInterceptor.Level.valueOf(config.getHttpLogLevel().toUpperCase().trim());
         }
 
-        // jackson 对象映射器
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
         authInterceptor = new AuthInterceptor(token);
         loggingInterceptor = new LoggingInterceptor(logLevel);
 
@@ -99,7 +86,7 @@ public class ParatranzApiFactory {
         retrofit = new Retrofit.Builder()
                 .baseUrl("https://paratranz.cn/api/")
                 .client(okHttpClient)
-                .addConverterFactory(JacksonConverterFactory.create(mapper))
+                .addConverterFactory(GsonConverterFactory.create())
                 .addCallAdapterFactory(new ErrorHandlingCallAdapterFactory())
                 .build();
     }

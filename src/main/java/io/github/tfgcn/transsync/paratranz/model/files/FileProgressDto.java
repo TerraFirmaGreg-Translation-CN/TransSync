@@ -9,7 +9,7 @@ import lombok.Data;
  */
 @Data
 public class FileProgressDto {
-    private Integer translate;
-    private Integer review;
-    private Integer check;
+    private Double translate;
+    private Double review;
+    private Double check;
 }

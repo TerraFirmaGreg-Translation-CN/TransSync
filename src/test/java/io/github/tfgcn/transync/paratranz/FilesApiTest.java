@@ -1,7 +1,6 @@
 package io.github.tfgcn.transync.paratranz;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.reflect.TypeToken;
 import io.github.tfgcn.transsync.Constants;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
@@ -13,11 +12,11 @@ import io.github.tfgcn.transsync.paratranz.model.files.TranslationDto;
 import io.github.tfgcn.transsync.paratranz.model.files.FileUploadRespDto;
 import io.github.tfgcn.transsync.paratranz.model.strings.StringItem;
 import io.github.tfgcn.transsync.paratranz.model.strings.StringsDto;
+import io.github.tfgcn.transsync.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,6 +27,7 @@ import retrofit2.Response;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
@@ -65,7 +65,7 @@ class FilesApiTest {
         List<FilesDto> fileList = fileListResponse.body();
 
         FilesDto existedFile = null;
-        if (CollectionUtils.isNotEmpty(fileList)) {
+        if (fileList != null && !fileList.isEmpty()) {
             for (FilesDto file : fileList) {
                 if (file.getName().equals(TEST_FILE)) {
                     existedFile = file;
@@ -136,15 +136,6 @@ class FilesApiTest {
     }
 
     @Test
-    void testDeleteFile() throws IOException {
-        Integer fileId = getTestFileId();
-        Response<Void> response = filesApi.deleteFile(PROJECT_ID, fileId).execute();
-        Assertions.assertTrue(response.isSuccessful());
-        log.info("{}", response);
-        deleteTestFileId();
-    }
-
-    @Test
     void testGetTranslate() throws IOException {
         Integer fileId = getTestFileId();
 
@@ -193,10 +184,8 @@ class FilesApiTest {
 
         // 读取本地汉化文件
         File file = getOrCreateTestFile(TEST_ZH_FILE, TEST_ZH_CONTENT);
-        Map<String, String> map;
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        map = objectMapper.readValue(file, new TypeReference<>() {});
+        Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+        Map<String, String> map = JsonUtils.readFile(file, mapType);
 
         // 遍历原文，上传翻译文件
         for (TranslationDto translation : translations) {
@@ -220,5 +209,14 @@ class FilesApiTest {
                 }
             }
         }
+    }
+
+    //@Test
+    void testDeleteFile() throws IOException {
+        Integer fileId = getTestFileId();
+        Response<Void> response = filesApi.deleteFile(PROJECT_ID, fileId).execute();
+        Assertions.assertTrue(response.isSuccessful());
+        log.info("{}", response);
+        deleteTestFileId();
     }
 }
