@@ -227,17 +227,28 @@ public class ConfigPanel extends JPanel {
         dialog.setVisible(true);
         
         // 如果用户点击了确认按钮，更新规则列表
-        if (dialog.isConfirmed()) {
-            FileScanRule rule = dialog.getRule();
-            if (existingRule != null) {
-                // 编辑现有规则
-                int index = rules.indexOf(existingRule);
-                rules.set(index, rule);
-            } else {
-                // 添加新规则
-                rules.add(rule);
+        switch (dialog.getOp()) {
+            case ADD: {
+                FileScanRule rule = dialog.getRule();
+                if (existingRule != null) {
+                    // 编辑现有规则
+                    int index = rules.indexOf(existingRule);
+                    rules.set(index, rule);
+                } else {
+                    // 添加新规则
+                    rules.add(rule);
+                }
+                updateRulesTable();
+                break;
             }
-            updateRulesTable();
+            case DELETE: {
+                rules.remove(existingRule);
+                updateRulesTable();
+                break;
+            }
+            default: {
+                break;
+            }
         }
     }
     

@@ -19,10 +19,13 @@ import java.util.StringTokenizer;
 
 public class RuleDialog extends JDialog {
     @Getter
-    private boolean confirmed = false;
+    private Op op = Op.CANCEL;
     @Getter
     private final transient FileScanRule rule;
 
+    enum Op {
+        ADD, CANCEL, DELETE
+    }
     // UI 组件
     private JTextField sourcePatternField;
     private JTextField translationPatternField;
@@ -44,13 +47,13 @@ public class RuleDialog extends JDialog {
         this.rule = existingRule != null ? new FileScanRule(existingRule) : new FileScanRule();
         this.workspace = workspace;
 
-        initUI();
+        initUI(existingRule != null);
         loadRuleData();
         setSize(800, 600);
         setLocationRelativeTo(owner);
     }
 
-    private void initUI() {
+    private void initUI(boolean editMode) {
         // 创建主面板
         JPanel mainPanel = new JPanel(new BorderLayout());
 
@@ -63,7 +66,7 @@ public class RuleDialog extends JDialog {
         mainPanel.add(treePanel, BorderLayout.CENTER);
 
         // 创建底部按钮面板
-        JPanel buttonPanel = createButtonPanel();
+        JPanel buttonPanel = createButtonPanel(editMode);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // 添加主面板到窗口
@@ -180,7 +183,7 @@ public class RuleDialog extends JDialog {
         return panel;
     }
 
-    private JPanel createButtonPanel() {
+    private JPanel createButtonPanel(boolean editMode) {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -192,6 +195,12 @@ public class RuleDialog extends JDialog {
 
         panel.add(okButton);
         panel.add(cancelButton);
+
+        if (editMode) {
+            JButton deleteButton = new JButton(I18n.getString("button.delete"));
+            deleteButton.addActionListener(e -> onDelete());
+            panel.add(deleteButton);
+        }
 
         return panel;
     }
@@ -340,12 +349,26 @@ public class RuleDialog extends JDialog {
         }
         rule.setIgnores(ignores);
 
-        confirmed = true;
+        op = Op.ADD;
         dispose();
     }
 
     private void onCancel() {
-        confirmed = false;
+        op = Op.CANCEL;
         dispose();
+    }
+
+    private void onDelete() {
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                I18n.getString("message.confirmDeleteRule"),
+                I18n.getString("dialog.deleteRule.title"),
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            op = Op.DELETE;
+            dispose();
+        }
     }
 }
