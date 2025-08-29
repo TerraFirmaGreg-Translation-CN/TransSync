@@ -227,7 +227,7 @@ public class RuleDialog extends JDialog {
     private void scanFiles() {
         if (workspace == null || workspace.trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, I18n.getString("message.workspaceNotSet"),
-                    I18n.getString("dialog.warn.title"), JOptionPane.WARNING_MESSAGE);
+                    I18n.getString("dialog.title.warn"), JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -261,7 +261,7 @@ public class RuleDialog extends JDialog {
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
                     I18n.getString("message.scanFailed") + ex.getMessage(),
-                    I18n.getString("dialog.error.title"),
+                    I18n.getString("dialog.title.error"),
                     JOptionPane.ERROR_MESSAGE);
         }
     }

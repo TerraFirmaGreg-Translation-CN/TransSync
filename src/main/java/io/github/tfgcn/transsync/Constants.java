@@ -25,8 +25,6 @@ public final class Constants {
     public static final String ENV_HTTP_LOG_LEVEL = "HTTP_LOG_LEVEL";
 
     public static final String SEPARATOR = "/";
-    public static final String EN_US = "en_us";
-    public static final String ZH_CN = "zh_cn";
 
     public static final String MSG_FOLDER_NOT_FOUND = "找不到目录";
     public static final String MSG_FOLDER_INVALID = "非法目录";
@@ -44,11 +42,8 @@ public final class Constants {
     public static final int WINDOW_DEFAULT_HEIGHT = 720;
 
     // 统计文本
-    public static final String EMPTY_NAME = "未选择项目";
-    public static final String EMPTY_DATE = "暂无创建时间";
     public static final String EMPTY_BADGE = "未知";
     public static final String EMPTY_STAT_VALUE = "0";
-    public static final String EMPTY_STAT_TIP = "暂无统计数据";
 
     public static final String ENSURE_FORCE_TITLE = "是否强制覆盖未翻译文本?";
     public static final String ENSURE_FORCE_MESSAGE =

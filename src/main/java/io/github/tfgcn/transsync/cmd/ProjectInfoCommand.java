@@ -2,6 +2,7 @@ package io.github.tfgcn.transsync.cmd;
 
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.Constants;
+import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectStatsDto;
@@ -56,13 +57,13 @@ public class ProjectInfoCommand extends BaseCommand implements Callable<Integer>
             double cp = stats.getCp();
             double rp = stats.getRp();
 
-            System.out.println("总字数: " + formatNumber(words));
-            System.out.println("总条数: " + formatNumber(total) + " (+" + formatNumber(hidden) + ")");
-            System.out.println("已翻译条数: " + formatNumber(translated) + " (" + formatPercent(tp) + ")");
-            System.out.println("已检查条数: " + formatNumber(checked) + " (" + formatPercent(cp) + ")");
-            System.out.println("已审核条数: " + formatNumber(reviewed) + " (" + formatPercent(rp) + ")");
+            System.out.println(I18n.getString("label.totalWords") + ": " + formatNumber(words));
+            System.out.println(I18n.getString("label.totalStrings") + ": " + formatNumber(total) + " (+" + formatNumber(hidden) + ")");
+            System.out.println(I18n.getString("label.translatedStrings") + ": " + formatNumber(translated) + " (" + formatPercent(tp) + ")");
+            System.out.println(I18n.getString("label.checkedStrings") + ": " + formatNumber(checked) + " (" + formatPercent(cp) + ")");
+            System.out.println(I18n.getString("label.reviewedStrings") + ": " + formatNumber(reviewed) + " (" + formatPercent(rp) + ")");
         } else {
-            System.out.println(EMPTY_STAT_TIP);
+            System.out.println(I18n.getString("label.emptyStats"));
         }
         return 0;
     }

@@ -2,6 +2,7 @@ package io.github.tfgcn.transsync.cmd;
 
 import io.github.tfgcn.transsync.Config;
 import io.github.tfgcn.transsync.Constants;
+import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
@@ -56,34 +57,6 @@ public class UploadSourceCommand extends BaseCommand implements Callable<Integer
         app.uploadSources();
 
         log.info("Done.");
-
-        // 查询统计结果
-        projectsDto = projectsApi.getProject(config.getProjectId()).execute().body();
-        assert projectsDto != null;
-        ProjectStatsDto stats = projectsDto.getStats();
-
-        if (stats != null) {
-            // 提取统计数据
-            int total = stats.getTotal();
-            int translated = stats.getTranslated();
-            int checked = stats.getChecked();
-            int reviewed = stats.getReviewed();
-            int words = stats.getWords();
-            int hidden = stats.getHidden();
-
-            double tp = stats.getTp();
-            double cp = stats.getCp();
-            double rp = stats.getRp();
-
-            // 添加统计行（进度条支持拉伸）
-            log.info("总字数: {}", formatNumber(words));
-            log.info("总条数: {} (+{})", formatNumber(total), hidden);
-            log.info("已翻译条数: {} ({})", formatNumber(translated), formatPercent(tp));
-            log.info("已检查条数: {} ({})", formatNumber(checked), formatPercent(cp));
-            log.info("已审核条数: {} ({})", formatNumber(reviewed), formatPercent(rp));
-        } else {
-            log.info(EMPTY_STAT_TIP);
-        }
         return 0;
     }
 

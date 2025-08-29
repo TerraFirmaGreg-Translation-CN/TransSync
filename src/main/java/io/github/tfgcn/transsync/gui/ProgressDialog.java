@@ -1,5 +1,6 @@
 package io.github.tfgcn.transsync.gui;
 
+import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.service.SyncService;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
@@ -113,7 +114,7 @@ public class ProgressDialog extends JDialog {
         progressTable.setRowHeight(25);
 
         JScrollPane scrollPane = new JScrollPane(progressTable);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("文件状态"));
+        scrollPane.setBorder(BorderFactory.createTitledBorder(I18n.getString("title.fileStatus")));
         mainPanel.add(scrollPane, BorderLayout.CENTER); // 表格占满中间区域
 
         // 2. 底部区域（进度条 + 按钮）

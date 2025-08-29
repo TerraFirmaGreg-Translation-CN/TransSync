@@ -1,5 +1,6 @@
 package io.github.tfgcn.transsync.gui;
 
+import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectStatsDto;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 
@@ -81,7 +82,7 @@ public class ProjectInfoPanel extends JPanel {
     /**
      * 刷新内容面板
      */
-    private void refreshContent() {
+    void refreshContent() {
         // 清空原有内容
         contentPanel.removeAll();
 
@@ -119,7 +120,7 @@ public class ProjectInfoPanel extends JPanel {
         infoPanel.setBackground(BACKGROUND_COLOR);
 
         // 1. 项目名称
-        String projectName = project != null ? project.getName() : EMPTY_NAME;
+        String projectName = project != null ? project.getName() : I18n.getString("label.emptyName");
         JLabel nameLabel = new JLabel(projectName);
         nameLabel.setFont(TITLE_FONT);
         nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -131,8 +132,8 @@ public class ProjectInfoPanel extends JPanel {
 
         // 2. 创建时间
         String createTime = (project != null && project.getCreatedAt() != null)
-                ? "创建于 " + formatDate(project.getCreatedAt())
-                : EMPTY_DATE;
+                ? I18n.getString("label.createdAt") + " " + formatDate(project.getCreatedAt())
+                : I18n.getString("label.emptyDate");
         JLabel createdAtLabel = new JLabel(createTime);
         createdAtLabel.setFont(SMALL_FONT);
         createdAtLabel.setForeground(SECONDARY_COLOR);
@@ -153,16 +154,16 @@ public class ProjectInfoPanel extends JPanel {
         badgesPanel.add(gameBadge);
 
         // 活跃度标签
-        String activeLevel = (project != null && project.getActiveLevel() != null)
-                ? "近7天活跃度 " + project.getActiveLevel()
-                : "近7天活跃度 " + EMPTY_BADGE;
+        String activeLevel = I18n.getString("label.activityIn7Days") + " " +
+                ((project != null && project.getActiveLevel() != null)
+                    ? project.getActiveLevel() : I18n.getString("label.unknown"));
         JLabel activityBadge = createBadge(activeLevel, new Color(220, 53, 69));
         badgesPanel.add(activityBadge);
 
         // 语言方向标签
         String langDir = (project != null && project.getSource() != null && project.getDest() != null)
                 ? project.getSource() + " → " + project.getDest()
-                : EMPTY_BADGE + " → " + EMPTY_BADGE;
+                : I18n.getString("label.unknown") + " → " + I18n.getString("label.unknown");
         JLabel langBadge = createBadge(langDir, ACCENT_COLOR);
         badgesPanel.add(langBadge);
 
@@ -197,25 +198,25 @@ public class ProjectInfoPanel extends JPanel {
             double rp = stats.getRp();
 
             // 添加统计行
-            panel.add(createStatRow("总字数", null, formatNumber(words)));
+            panel.add(createStatRow(I18n.getString("label.totalWords"), null, formatNumber(words)));
             panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-            panel.add(createStatRow("总条数", null, formatNumber(total) + " (+" + hidden + ")"));
+            panel.add(createStatRow(I18n.getString("label.totalStrings"), null, formatNumber(total) + " (+" + hidden + ")"));
             panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-            panel.add(createStatRow("已翻译条数", createProgressBar(tp, PRIMARY_COLOR),
+            panel.add(createStatRow(I18n.getString("label.translatedStrings"), createProgressBar(tp, PRIMARY_COLOR),
                     formatNumber(translated) + " (" + formatPercent(tp) + ")"));
             panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-            panel.add(createStatRow("已检查条数", createProgressBar(cp, new Color(0, 150, 136)),
+            panel.add(createStatRow(I18n.getString("label.checkedStrings"), createProgressBar(cp, new Color(0, 150, 136)),
                     formatNumber(checked) + " (" + formatPercent(cp) + ")"));
             panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-            panel.add(createStatRow("已审核条数", createProgressBar(rp, new Color(67, 160, 71)),
+            panel.add(createStatRow(I18n.getString("label.reviewedStrings"), createProgressBar(rp, new Color(67, 160, 71)),
                     formatNumber(reviewed) + " (" + formatPercent(rp) + ")"));
         } else {
             // 空统计状态显示
-            JLabel noStatsLabel = new JLabel(EMPTY_STAT_TIP);
+            JLabel noStatsLabel = new JLabel(I18n.getString("label.emptyStats"));
             noStatsLabel.setFont(LABEL_FONT);
             noStatsLabel.setForeground(EMPTY_TEXT_COLOR);
             noStatsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -302,8 +303,7 @@ public class ProjectInfoPanel extends JPanel {
 
     // ==================== 工具方法 ====================
     private String formatDate(Date date) {
-        if (date == null) return EMPTY_DATE.replace("暂无", "");
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日 HH:mm");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         return sdf.format(date);
     }
 

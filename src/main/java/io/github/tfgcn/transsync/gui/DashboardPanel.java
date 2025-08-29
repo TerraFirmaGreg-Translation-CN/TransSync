@@ -69,13 +69,13 @@ public class DashboardPanel extends JPanel {
         projectInfoPanel = new ProjectInfoPanel(null);
 
         // 状态和控制组件
-        paratranzStatus = new JLabel("Paratranz 状态: ");
-        paratranzStatusLabel = new JLabel("检查中...");
+        paratranzStatus = new JLabel();
+        paratranzStatusLabel = new JLabel();
 
         // 同步按钮
-        uploadSourcesButton = new JButton("上传原文");
-        uploadTranslationsButton = new JButton("上传译文");
-        downloadTranslationsButton = new JButton("下载译文");
+        uploadSourcesButton = new JButton();
+        uploadTranslationsButton = new JButton();
+        downloadTranslationsButton = new JButton();
     }
 
     private void setupLayout() {
@@ -141,14 +141,14 @@ public class DashboardPanel extends JPanel {
             // 3. 获取待处理文件列表
             List<FilesDto> files = service.fetchRemoteFiles();
             if (files.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "没有需要下载的译文文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, I18n.getString("message.nothingToDownload"));
                 return;
             }
 
             // 4. 创建并显示ProgressDialog
             ProgressDialog dialog = new ProgressDialog(
                     (Frame) SwingUtilities.getWindowAncestor(this),
-                    "下载译文",
+                    I18n.getString("dialog.title.downloadTranslatedFiles"),
                     TaskType.DOWNLOAD_TRANSLATIONS,
                     service,
                     files,
@@ -160,7 +160,9 @@ public class DashboardPanel extends JPanel {
             loadProjectInfo();
             updateStatus();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "下载准备失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    I18n.getString("message.downloadFailed") + e.getMessage(),
+                    I18n.getString("dialog.title.error"), JOptionPane.ERROR_MESSAGE);
         } finally {
             enableButtons();
         }
@@ -183,14 +185,14 @@ public class DashboardPanel extends JPanel {
             // 3. 获取待处理文件列表
             List<FilesDto> files = service.fetchRemoteFiles();
             if (files.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "没有需要上传的译文文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, I18n.getString("message.nothingToUpload"));
                 return;
             }
 
             // 4. 创建并显示ProgressDialog
             ProgressDialog dialog = new ProgressDialog(
                     (Frame) SwingUtilities.getWindowAncestor(this),
-                    "上传译文",
+                    I18n.getString("dialog.title.uploadTranslatedFiles"),
                     TaskType.UPLOAD_TRANSLATIONS,
                     service,
                     files,
@@ -202,7 +204,10 @@ public class DashboardPanel extends JPanel {
             loadProjectInfo();
             updateStatus();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "上传准备失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    I18n.getString("message.uploadFailed") + e.getMessage(),
+                    I18n.getString("dialog.title.error"),
+                    JOptionPane.ERROR_MESSAGE);
         } finally {
             enableButtons();
         }
@@ -221,7 +226,7 @@ public class DashboardPanel extends JPanel {
             // 2. 获取待处理文件列表（提前检查，无文件则提示）
             List<FileScanResult> fileScanResults = service.getSourceFiles();
             if (fileScanResults.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "没有需要上传的原文文件", "提示", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, I18n.getString("message.nothingToUpload"));
                 return;
             }
 
@@ -231,7 +236,7 @@ public class DashboardPanel extends JPanel {
             // 4. 创建并显示ProgressDialog（任务逻辑交给对话框）
             ProgressDialog dialog = new ProgressDialog(
                     (Frame) SwingUtilities.getWindowAncestor(this),
-                    "上传原文",
+                    I18n.getString("dialog.title.uploadSourceFiles"),
                     TaskType.UPLOAD_SOURCES,
                     service,
                     fileScanResults,
@@ -245,7 +250,9 @@ public class DashboardPanel extends JPanel {
 
         } catch (Exception e) {
             // 初始化失败时提示
-            JOptionPane.showMessageDialog(this, "上传准备失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    I18n.getString("message.uploadFailed") + e.getMessage(),
+                    I18n.getString("dialog.title.error"), JOptionPane.ERROR_MESSAGE);
         } finally {
             enableButtons(); // 确保按钮恢复可用
         }
@@ -325,5 +332,6 @@ public class DashboardPanel extends JPanel {
         uploadTranslationsButton.setText(I18n.getString("button.uploadTranslatedFiles"));
         downloadTranslationsButton.setText(I18n.getString("button.downloadTranslatedFiles"));
 
+        projectInfoPanel.refreshContent();
     }
 }
