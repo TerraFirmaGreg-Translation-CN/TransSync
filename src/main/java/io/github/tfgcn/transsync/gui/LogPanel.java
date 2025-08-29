@@ -12,9 +12,12 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS;
 
 @Slf4j
 public class LogPanel extends JPanel {
@@ -27,15 +30,7 @@ public class LogPanel extends JPanel {
 
     // 日志队列，用于线程安全的日志添加
     private final BlockingQueue<LogEntry> logQueue = new LinkedBlockingQueue<>();
-    
-    // 保存原始的系统输出流
-    private PrintStream originalOut;
-    private PrintStream originalErr;
-    
-    // 自定义输出流
-    private LogPanelOutputStream logPanelOut;
-    private LogPanelOutputStream logPanelErr;
-    
+
     // 日志级别
     public enum LogLevel {
         INFO, ERROR
@@ -49,10 +44,10 @@ public class LogPanel extends JPanel {
         private LogLevel level;
         private String message;
     }
-    
+
     // 日志样式
-    private Style errorStyle;
-    private Style defaultStyle;
+    private transient Style errorStyle;
+    private transient Style defaultStyle;
     
     public LogPanel() {
         initComponents();
@@ -73,7 +68,7 @@ public class LogPanel extends JPanel {
         
         // 创建滚动面板
         scrollPane = new JScrollPane(logTextPane);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setVerticalScrollBarPolicy(VERTICAL_SCROLLBAR_ALWAYS);
         
         // 创建工具栏
         toolBar = new JToolBar();
@@ -115,21 +110,17 @@ public class LogPanel extends JPanel {
      */
     private void redirectSystemStreams() {
         // 保存原始的系统输出流
-        originalOut = System.out;
-        originalErr = System.err;
+        PrintStream originalOut = System.out;
+        PrintStream originalErr = System.err;
         
         // 创建自定义输出流
-        logPanelOut = new LogPanelOutputStream(this, false);
-        logPanelErr = new LogPanelOutputStream(this, true);
-        
-        // 创建新的 PrintStream
-        PrintStream printStreamOut = new PrintStream(logPanelOut, true);
-        PrintStream printStreamErr = new PrintStream(logPanelErr, true);
-        
+        LogPanelOutputStream logPanelOut = new LogPanelOutputStream(this, false);
+        LogPanelOutputStream logPanelErr = new LogPanelOutputStream(this, true);
+
         // 重定向系统输出
-        System.setOut(printStreamOut);
-        System.setErr(printStreamErr);
-        
+        System.setOut(new PrintStream(logPanelOut, true));
+        System.setErr(new PrintStream(logPanelErr, true));
+
         // 添加关闭钩子，确保在程序退出时恢复原始输出流
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.setOut(originalOut);
@@ -234,8 +225,96 @@ public class LogPanel extends JPanel {
         }
     }
 
-    private void setLocalizedText() {
+    void setLocalizedText() {
         clearButton.setText(I18n.getString("panel.log.button.clear"));
         autoScrollCheckBox.setText(I18n.getString("panel.log.checkbox.autoScroll"));
+    }
+
+    /**
+     * 自定义 OutputStream，将输出重定向到 LogPanel
+     */
+    static class LogPanelOutputStream extends OutputStream {
+        private final LogPanel logPanel;
+        private final StringBuilder buffer;
+        private final boolean isStdErr;
+
+        public LogPanelOutputStream(LogPanel logPanel, boolean isStdErr) {
+            this.logPanel = logPanel;
+            this.buffer = new StringBuilder();
+            this.isStdErr = isStdErr;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            synchronized (buffer) {
+                // 将字节转换为字符
+                char c = (char) b;
+
+                // 如果是换行符，则刷新缓冲区
+                if (c == '\n') {
+                    flush();
+                    return;
+                }
+
+                // 将字符添加到缓冲区
+                buffer.append(c);
+            }
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            synchronized (buffer) {
+                // 将字节数组转换为字符串
+                String s = new String(b, off, len, StandardCharsets.UTF_8);
+
+                // 处理字符串中的换行符
+                for (int i = 0; i < s.length(); i++) {
+                    char c = s.charAt(i);
+                    if (c == '\n') {
+                        flush();
+                    } else {
+                        buffer.append(c);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void flush() throws IOException {
+            synchronized (buffer) {
+                // 如果缓冲区有内容，则发送到 LogPanel
+                if (!buffer.isEmpty()) {
+                    String message = buffer.toString();
+
+                    // 清理 ANSI 转义序列
+                    String msg = cleanAnsiCodes(message);
+
+                    // 在 EDT 线程中更新 UI
+                    SwingUtilities.invokeLater(() -> {
+                        if (isStdErr) {
+                            logPanel.error(msg);
+                        } else {
+                            logPanel.info(msg);
+                        }
+                    });
+
+                    // 清空缓冲区
+                    buffer.setLength(0);
+                }
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            flush();
+        }
+
+        /**
+         * 清理 ANSI 转义序列
+         */
+        private String cleanAnsiCodes(String text) {
+            // 移除 ANSI 转义序列
+            return text.replaceAll("\u001B\\[[;\\d]*m", "");
+        }
     }
 }

@@ -1,6 +1,7 @@
 package io.github.tfgcn.transsync.gui;
 
 import io.github.tfgcn.transsync.Config;
+import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
 import io.github.tfgcn.transsync.paratranz.api.StringsApi;
 import io.github.tfgcn.transsync.paratranz.ParatranzApiFactory;
@@ -9,6 +10,8 @@ import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 import io.github.tfgcn.transsync.service.SyncService;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,12 +26,29 @@ import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_TITLE;
  *
  * @author yanmaoyuan
  */
+@Slf4j
 public class DashboardPanel extends JPanel {
 
     private final transient Config config;
 
+    enum ConnectionStatus {
+        CONNECTING("connectStatus.connecting"),
+        SUCCESS("connectStatus.success"),
+        FAILED("connectStatus.failed");
+
+        @Getter
+        private final String message;
+        ConnectionStatus(String message) {
+            this.message = message;
+        }
+    }
+
     private ProjectInfoPanel projectInfoPanel;
+
+    private volatile ConnectionStatus connectionStatus = ConnectionStatus.CONNECTING;
+    private JLabel paratranzStatus;
     private JLabel paratranzStatusLabel;
+
     private JButton uploadSourcesButton;  // 上传同步按钮
     private JButton uploadTranslationsButton;  // 上传同步按钮
     private JButton downloadTranslationsButton; // 下载同步按钮
@@ -37,6 +57,7 @@ public class DashboardPanel extends JPanel {
         this.config = config;
 
         initComponents();
+        setLocalizedText();
         setupLayout();
         setupEventHandlers();
         updateStatus();
@@ -48,18 +69,13 @@ public class DashboardPanel extends JPanel {
         projectInfoPanel = new ProjectInfoPanel(null);
 
         // 状态和控制组件
+        paratranzStatus = new JLabel("Paratranz 状态: ");
         paratranzStatusLabel = new JLabel("检查中...");
 
         // 同步按钮
         uploadSourcesButton = new JButton("上传原文");
         uploadTranslationsButton = new JButton("上传译文");
         downloadTranslationsButton = new JButton("下载译文");
-
-        // 统一按钮大小
-        Dimension buttonSize = new Dimension(120, 25);
-        uploadSourcesButton.setPreferredSize(buttonSize);
-        uploadTranslationsButton.setPreferredSize(buttonSize);
-        downloadTranslationsButton.setPreferredSize(buttonSize);
     }
 
     private void setupLayout() {
@@ -96,7 +112,7 @@ public class DashboardPanel extends JPanel {
 
         // 状态栏左侧区域（包含最后同步时间和Paratranz状态）
         JPanel statusLeftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
-        statusLeftPanel.add(new JLabel("Paratranz 状态: "));
+        statusLeftPanel.add(paratranzStatus);
         statusLeftPanel.add(paratranzStatusLabel);
         statusBar.add(statusLeftPanel, BorderLayout.WEST);
 
@@ -252,12 +268,13 @@ public class DashboardPanel extends JPanel {
         new Thread(() -> {
             try {
                 boolean paratranzConnected = config.checkParatranzConnected();
-                SwingUtilities.invokeLater(() ->
-                        paratranzStatusLabel.setText(paratranzConnected ? "已连接" : "连接失败"));
+                connectionStatus = paratranzConnected ? ConnectionStatus.SUCCESS : ConnectionStatus.FAILED;
             } catch (Exception e) {
-                SwingUtilities.invokeLater(() ->
-                        paratranzStatusLabel.setText("连接错误: " + e.getMessage()));
+                connectionStatus = ConnectionStatus.FAILED;
+                log.error("connection error:", e);
             }
+            SwingUtilities.invokeLater(() ->
+                    paratranzStatusLabel.setText(I18n.getString(connectionStatus.getMessage())));
         }).start();
     }
 
@@ -298,5 +315,15 @@ public class DashboardPanel extends JPanel {
         service.setFilesApi(factory.create(FilesApi.class));
         service.setStringsApi(factory.create(StringsApi.class));
         return service;
+    }
+
+    void setLocalizedText() {
+        paratranzStatus.setText(I18n.getString("dashboard.label.paratranzStatus"));
+        paratranzStatusLabel.setText(I18n.getString(connectionStatus.getMessage()));
+
+        uploadSourcesButton.setText(I18n.getString("dashboard.button.uploadSourceFiles"));
+        uploadTranslationsButton.setText(I18n.getString("dashboard.button.uploadTranslatedFiles"));
+        downloadTranslationsButton.setText(I18n.getString("dashboard.button.downloadTranslatedFiles"));
+
     }
 }

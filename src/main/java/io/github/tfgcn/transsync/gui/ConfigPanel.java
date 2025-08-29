@@ -319,7 +319,7 @@ public class ConfigPanel extends JPanel {
         }
     }
 
-    private void setLocalizedText() {
+    void setLocalizedText() {
         browseButton.setText(I18n.getString("button.browse"));
         saveButton.setText(I18n.getString("button.save"));
         addRuleButton.setText(I18n.getString("button.addRule"));

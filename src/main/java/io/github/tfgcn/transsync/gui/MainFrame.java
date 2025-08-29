@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.util.Locale;
 
 import static io.github.tfgcn.transsync.Constants.*;
 
@@ -23,12 +24,17 @@ public class MainFrame extends JFrame {
     JMenuItem uploadTranslatedFiles;
     JMenuItem downloadTranslatedFiles;
 
+    JMenu langMenu;
+    JMenuItem langZhItem;
+    JMenuItem langEnItem;
+
     JMenu helpMenu;
     JMenuItem aboutItem;
 
     private JTabbedPane tabbedPane;
     private DashboardPanel dashboardPanel;
     private ConfigPanel configPanel;
+    private LogPanel logPanel;
 
     public MainFrame(Config config) {
         this.config = config;
@@ -57,10 +63,11 @@ public class MainFrame extends JFrame {
 
         dashboardPanel = new DashboardPanel(config);
         configPanel = new ConfigPanel(config);
+        logPanel = new LogPanel();
 
-        tabbedPane.addTab("仪表盘", dashboardPanel);
-        tabbedPane.addTab("配置", configPanel);
-        tabbedPane.addTab("日志", new LogPanel());
+        tabbedPane.addTab(I18n.getString("tab.dashboard"), dashboardPanel);
+        tabbedPane.addTab(I18n.getString("tab.config"), configPanel);
+        tabbedPane.addTab(I18n.getString("tab.log"), logPanel);
 
         // 添加菜单栏
         setJMenuBar(createMenuBar());
@@ -92,6 +99,15 @@ public class MainFrame extends JFrame {
         downloadTranslatedFiles.addActionListener(e -> dashboardPanel.startDownloadTranslations());
         toolsMenu.add(downloadTranslatedFiles);
 
+        // 语言菜单
+        langMenu = new JMenu("语言");
+        langZhItem = new JMenuItem("简体中文(zh)");
+        langZhItem.addActionListener(e -> changeLanguage(Locale.CHINESE));
+        langMenu.add(langZhItem);
+        langEnItem = new JMenuItem("英语(en)");
+        langEnItem.addActionListener(e -> changeLanguage(Locale.US));
+        langMenu.add(langEnItem);
+
         // 帮助菜单
         helpMenu = new JMenu("帮助");
         aboutItem = new JMenuItem("关于");
@@ -100,6 +116,7 @@ public class MainFrame extends JFrame {
 
         menuBar.add(fileMenu);
         menuBar.add(toolsMenu);
+        menuBar.add(langMenu);
         menuBar.add(helpMenu);
 
         return menuBar;
@@ -116,7 +133,7 @@ public class MainFrame extends JFrame {
         try {
             this.config.save();
         } catch (IOException e) {
-            log.error("保存配置文件失败", e);
+            log.error("Failed to save config file", e);
         }
         dashboardPanel.updateConfig(config);
     }
@@ -128,16 +145,30 @@ public class MainFrame extends JFrame {
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
+    private void changeLanguage(Locale locale) {
+        I18n.setLocale(locale);
+        SwingUtilities.invokeLater(() -> {
+            setLocalizedText();
+            repaint();
+        });
+    }
+
     private void setLocalizedText() {
 
         setTitle(I18n.getString("window.title"));
 
         fileMenu.setText(I18n.getString("menu.file"));
         exitItem.setText(I18n.getString("menu.file.exit"));
+
         toolsMenu.setText(I18n.getString("menu.tool"));
         uploadSourceFiles.setText(I18n.getString("menu.tool.uploadSourceFiles"));
         uploadTranslatedFiles.setText(I18n.getString("menu.tool.uploadTranslatedFiles"));
         downloadTranslatedFiles.setText(I18n.getString("menu.tool.downloadTranslatedFiles"));
+
+        langMenu.setText(I18n.getString("menu.lang"));
+        langZhItem.setText(I18n.getString("menu.lang.zh"));
+        langEnItem.setText(I18n.getString("menu.lang.en"));
+
         helpMenu.setText(I18n.getString("menu.help"));
         aboutItem.setText(I18n.getString("menu.help.about"));
 
@@ -145,5 +176,8 @@ public class MainFrame extends JFrame {
         tabbedPane.setTitleAt(1, I18n.getString("tab.config"));// "配置"
         tabbedPane.setTitleAt(2, I18n.getString("tab.log"));// "日志"
 
+        dashboardPanel.setLocalizedText();
+        configPanel.setLocalizedText();
+        logPanel.setLocalizedText();
     }
 }
