@@ -1,5 +1,6 @@
 package io.github.tfgcn.transsync.gui;
 
+import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.service.model.FileScanRequest;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
 import io.github.tfgcn.transsync.service.model.FileScanRule;
@@ -36,7 +37,10 @@ public class RuleDialog extends JDialog {
     private final String workspace;
 
     public RuleDialog(Window owner, FileScanRule existingRule, String workspace) {
-        super(owner, existingRule == null ? "添加映射规则" : "编辑映射规则", ModalityType.APPLICATION_MODAL);
+        super(owner, existingRule == null ?
+                I18n.getString("dialog.addRule.title") :
+                I18n.getString("dialog.editRule.title"),
+                ModalityType.APPLICATION_MODAL);
         this.rule = existingRule != null ? new FileScanRule(existingRule) : new FileScanRule();
         this.workspace = workspace;
 
@@ -77,7 +81,7 @@ public class RuleDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0.2;
-        panel.add(new JLabel("原文匹配模式:"), gbc);
+        panel.add(new JLabel(I18n.getString("label.sourcePattern")), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 0;
@@ -88,7 +92,7 @@ public class RuleDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0.2;
-        panel.add(new JLabel("译文匹配模式:"), gbc);
+        panel.add(new JLabel(I18n.getString("label.translationPattern")), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 1;
@@ -99,7 +103,7 @@ public class RuleDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.weightx = 0.2;
-        panel.add(new JLabel("原文语言代码:"), gbc);
+        panel.add(new JLabel(I18n.getString("label.srcLang")), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 2;
@@ -110,7 +114,7 @@ public class RuleDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.weightx = 0.2;
-        panel.add(new JLabel("译文语言代码:"), gbc);
+        panel.add(new JLabel(I18n.getString("label.destLang")), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 3;
@@ -123,7 +127,7 @@ public class RuleDialog extends JDialog {
         gbc.gridheight = 2; // 跨 2 行
         gbc.weightx = 0.2;
         gbc.anchor = GridBagConstraints.NORTHWEST; // 顶部左对齐
-        panel.add(new JLabel("忽略规则:\n (每行一个模式)"), gbc);
+        panel.add(new JLabel(I18n.getString("label.ignorePatterns")), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 4;
@@ -136,7 +140,7 @@ public class RuleDialog extends JDialog {
         ignoresScrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         panel.add(ignoresScrollPane, gbc);
 
-        JButton scanButton = new JButton("测试扫描规则");
+        JButton scanButton = new JButton(I18n.getString("button.testScanFiles"));
         scanButton.addActionListener(e -> scanFiles());
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -154,21 +158,21 @@ public class RuleDialog extends JDialog {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // 创建源文件树
-        sourceTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode("原文"));
+        sourceTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode("Sources"));
         sourceTree = new JTree(sourceTreeModel);
         sourceTree.setRootVisible(false);
 
         // 创建翻译文件树
-        translationTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode("译文"));
+        translationTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode("Translations"));
         translationTree = new JTree(translationTreeModel);
         translationTree.setRootVisible(false);
 
         // 添加滚动面板
         JScrollPane sourceScroll = new JScrollPane(sourceTree);
-        sourceScroll.setBorder(BorderFactory.createTitledBorder("原文"));
+        sourceScroll.setBorder(BorderFactory.createTitledBorder(I18n.getString("title.sources")));
 
         JScrollPane translationScroll = new JScrollPane(translationTree);
-        translationScroll.setBorder(BorderFactory.createTitledBorder("译文"));
+        translationScroll.setBorder(BorderFactory.createTitledBorder(I18n.getString("title.translations")));
 
         panel.add(sourceScroll);
         panel.add(translationScroll);
@@ -180,10 +184,10 @@ public class RuleDialog extends JDialog {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JButton okButton = new JButton("确认");
+        JButton okButton = new JButton(I18n.getString("button.confirm"));
         okButton.addActionListener(e -> onOk());
 
-        JButton cancelButton = new JButton("取消");
+        JButton cancelButton = new JButton(I18n.getString("button.cancel"));
         cancelButton.addActionListener(e -> onCancel());
 
         panel.add(okButton);
@@ -213,8 +217,8 @@ public class RuleDialog extends JDialog {
     // 扫描文件
     private void scanFiles() {
         if (workspace == null || workspace.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "请先设置工作目录",
-                    "警告", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, I18n.getString("message.workspaceNotSet"),
+                    I18n.getString("dialog.warn.title"), JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -246,16 +250,18 @@ public class RuleDialog extends JDialog {
             results.sort(Comparator.comparing(FileScanResult::getSourceFilePath));
             updateTrees(results);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "扫描失败:" + ex.getMessage(),
-                    "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    I18n.getString("message.scanFailed") + ex.getMessage(),
+                    I18n.getString("dialog.error.title"),
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
     // 更新树显示
     private void updateTrees(List<FileScanResult> results) {
         // 清空树和映射
-        sourceTreeModel.setRoot(new DefaultMutableTreeNode("原文"));
-        translationTreeModel.setRoot(new DefaultMutableTreeNode("译文"));
+        sourceTreeModel.setRoot(new DefaultMutableTreeNode("Sources"));
+        translationTreeModel.setRoot(new DefaultMutableTreeNode("Translations"));
 
         // 添加源文件树节点
         DefaultMutableTreeNode sourceRoot = (DefaultMutableTreeNode) sourceTreeModel.getRoot();

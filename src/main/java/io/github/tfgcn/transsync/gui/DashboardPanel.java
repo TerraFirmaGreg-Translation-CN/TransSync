@@ -318,12 +318,12 @@ public class DashboardPanel extends JPanel {
     }
 
     void setLocalizedText() {
-        paratranzStatus.setText(I18n.getString("dashboard.label.paratranzStatus"));
+        paratranzStatus.setText(I18n.getString("label.connectStatus"));
         paratranzStatusLabel.setText(I18n.getString(connectionStatus.getMessage()));
 
-        uploadSourcesButton.setText(I18n.getString("dashboard.button.uploadSourceFiles"));
-        uploadTranslationsButton.setText(I18n.getString("dashboard.button.uploadTranslatedFiles"));
-        downloadTranslationsButton.setText(I18n.getString("dashboard.button.downloadTranslatedFiles"));
+        uploadSourcesButton.setText(I18n.getString("button.uploadSourceFiles"));
+        uploadTranslationsButton.setText(I18n.getString("button.uploadTranslatedFiles"));
+        downloadTranslationsButton.setText(I18n.getString("button.downloadTranslatedFiles"));
 
     }
 }

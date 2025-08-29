@@ -75,12 +75,13 @@ public class LogPanel extends JPanel {
         toolBar.setFloatable(false);
         
         // 清空按钮
-        clearButton = new JButton("清空");
+        clearButton = new JButton();
         toolBar.add(clearButton);
-        
+
         // 自动滚动
         toolBar.addSeparator();
-        autoScrollCheckBox = new JCheckBox("自动滚动", true);
+        autoScrollCheckBox = new JCheckBox();
+        autoScrollCheckBox.setSelected(true);
         toolBar.add(autoScrollCheckBox);
         
         // 创建样式
@@ -171,7 +172,7 @@ public class LogPanel extends JPanel {
                 // 限制日志行数，避免内存占用过大
                 limitLogLines(1000);
             } catch (BadLocationException e) {
-                log.error("添加日志到UI失败", e);
+                log.error("Failed to add log to UI", e);
             }
         });
     }
@@ -187,7 +188,7 @@ public class LogPanel extends JPanel {
                 doc.remove(0, endOffset);
             }
         } catch (BadLocationException e) {
-            log.error("限制日志行数失败", e);
+            log.error("Failed to limit log lines", e);
         }
     }
     
@@ -198,7 +199,7 @@ public class LogPanel extends JPanel {
             logQueue.put(entry);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("添加日志到队列失败", e);
+            log.error("Failed to add log entry", e);
         }
     }
     
@@ -226,8 +227,8 @@ public class LogPanel extends JPanel {
     }
 
     void setLocalizedText() {
-        clearButton.setText(I18n.getString("panel.log.button.clear"));
-        autoScrollCheckBox.setText(I18n.getString("panel.log.checkbox.autoScroll"));
+        clearButton.setText(I18n.getString("button.clear"));
+        autoScrollCheckBox.setText(I18n.getString("checkbox.autoScroll"));
     }
 
     /**

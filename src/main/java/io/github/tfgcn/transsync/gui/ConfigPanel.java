@@ -16,11 +16,16 @@ public class ConfigPanel extends JPanel {
     private final transient Config config;
     private final transient List<FileScanRule> rules = new ArrayList<>();
 
+    private JLabel paratranzTokenLabel;
     private JTextField paratranzTokenField;
+    private JLabel paratranzProjectIdLabel;
     private JTextField paratranzProjectIdField;
+
+    private JLabel workspaceLabel;
     private JTextField workspaceField;
     private JButton browseButton;
     private JButton saveButton;
+
     private JButton addRuleButton;
     private JTable rulesTable;
     private DefaultTableModel rulesTableModel;
@@ -38,8 +43,12 @@ public class ConfigPanel extends JPanel {
     }
     
     private void initComponents() {
+        paratranzTokenLabel = new JLabel("Token:");
         paratranzTokenField = new JTextField(30);
+        paratranzProjectIdLabel = new JLabel("项目ID:");
         paratranzProjectIdField = new JTextField(10);
+
+        workspaceLabel = new JLabel("工作目录:");
         workspaceField = new JTextField(30);
         browseButton = new JButton("浏览...");
         saveButton = new JButton("保存配置");
@@ -74,24 +83,20 @@ public class ConfigPanel extends JPanel {
         int row = 0;
 
         // Paratranz 配置
-        add(new JLabel("Paratranz 配置"), createLabelConstraints(0, row++, 2));
-
-        add(new JLabel("Token:"), createLabelConstraints(0, row));
+        add(paratranzTokenLabel, createLabelConstraints(0, row));
         gbc.gridx = 1;
         gbc.gridy = row++;
         gbc.weightx = 1.0; // 允许水平扩展
         add(paratranzTokenField, gbc);
 
-        add(new JLabel("项目ID:"), createLabelConstraints(0, row));
+        add(paratranzProjectIdLabel, createLabelConstraints(0, row));
         gbc.gridx = 1;
         gbc.gridy = row++;
         // 保持weightx=1.0，继续允许水平扩展
         add(paratranzProjectIdField, gbc);
 
         // 本地配置
-        add(new JLabel("本地配置"), createLabelConstraints(0, row++, 2));
-
-        add(new JLabel("工作目录:"), createLabelConstraints(0, row));
+        add(workspaceLabel, createLabelConstraints(0, row));
         gbc.gridx = 1;
         gbc.gridy = row;
         gbc.fill = GridBagConstraints.HORIZONTAL; // 确保水平填充
@@ -108,8 +113,6 @@ public class ConfigPanel extends JPanel {
         gbc.weightx = 0;
 
         // 映射规则配置
-        add(new JLabel("映射规则配置"), createLabelConstraints(0, row++, 3));
-
         // 添加规则按钮
         gbc.gridx = 2;// 放在最右侧列
         gbc.gridy = row++;
@@ -293,7 +296,7 @@ public class ConfigPanel extends JPanel {
                 button.setBackground(table.getBackground());
             }
             label = (value == null) ? "" : value.toString();
-            button.setText(label);
+            button.setText(I18n.getString(label));
             isPushed = true;
             return button;
         }
@@ -320,16 +323,23 @@ public class ConfigPanel extends JPanel {
     }
 
     void setLocalizedText() {
+        paratranzTokenLabel.setText(I18n.getString("label.token"));
+        paratranzProjectIdLabel.setText(I18n.getString("label.projectId"));
+
+        workspaceLabel.setText(I18n.getString("label.workspace"));
         browseButton.setText(I18n.getString("button.browse"));
-        saveButton.setText(I18n.getString("button.save"));
+
         addRuleButton.setText(I18n.getString("button.addRule"));
+
+        saveButton.setText(I18n.getString("button.save"));
+
         rulesTable.getColumnModel().getColumn(4).setCellRenderer(new ButtonRenderer());
         rulesTable.getColumnModel().getColumn(4).setCellEditor(new ButtonEditor(new JCheckBox()));
 
-        rulesTable.getColumnModel().getColumn(0).setHeaderValue(I18n.getString("table.header.sourcePattern"));
-        rulesTable.getColumnModel().getColumn(1).setHeaderValue(I18n.getString("table.header.translationPattern"));
-        rulesTable.getColumnModel().getColumn(2).setHeaderValue(I18n.getString("table.header.srcLang"));
-        rulesTable.getColumnModel().getColumn(3).setHeaderValue(I18n.getString("table.header.destLang"));
-        rulesTable.getColumnModel().getColumn(4).setHeaderValue(I18n.getString("table.header.action"));
+        rulesTable.getColumnModel().getColumn(0).setHeaderValue(I18n.getString("ruleTable.headers[0]"));
+        rulesTable.getColumnModel().getColumn(1).setHeaderValue(I18n.getString("ruleTable.headers[1]"));
+        rulesTable.getColumnModel().getColumn(2).setHeaderValue(I18n.getString("ruleTable.headers[2]"));
+        rulesTable.getColumnModel().getColumn(3).setHeaderValue(I18n.getString("ruleTable.headers[3]"));
+        rulesTable.getColumnModel().getColumn(4).setHeaderValue(I18n.getString("ruleTable.headers[4]"));
     }
 }
