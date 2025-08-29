@@ -269,8 +269,8 @@ public class ProgressDialog extends JDialog {
                 // 根据任务类型执行具体操作
                 String result;
                 switch (taskType) {
-                    case UPLOAD_ORIGINALS: {
-                        result = syncService.uploadOriginalFile((FileScanResult) file);
+                    case UPLOAD_SOURCES: {
+                        result = syncService.uploadSourceFile((FileScanResult) file);
                         break;
                     }
                     case UPLOAD_TRANSLATIONS: {

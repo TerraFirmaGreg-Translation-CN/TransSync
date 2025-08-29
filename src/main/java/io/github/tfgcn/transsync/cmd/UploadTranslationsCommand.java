@@ -19,7 +19,7 @@ import java.util.concurrent.Callable;
  * @author yanmaoyuan
  */
 @Slf4j
-@CommandLine.Command(name = "up-trans", mixinStandardHelpOptions = true, version = Constants.VERSION,
+@CommandLine.Command(name = "upload-translation", mixinStandardHelpOptions = true, version = Constants.VERSION,
         description ="Upload translated file to paratranz.")
 public class UploadTranslationsCommand extends BaseCommand implements Callable<Integer> {
 

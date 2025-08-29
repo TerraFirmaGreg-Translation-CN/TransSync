@@ -44,7 +44,7 @@ public class Main {
     private static void cmd(String[] args) {
         CommandLine commandLine = new CommandLine(new MainCommand())
                 .addSubcommand(new ProjectInfoCommand())
-                .addSubcommand(new UploadOriginCommand())
+                .addSubcommand(new UploadSourceCommand())
                 .addSubcommand(new UploadTranslationsCommand())
                 .addSubcommand(new DownloadTranslationsCommand());
         commandLine.setExecutionStrategy(new CommandLine.RunLast());

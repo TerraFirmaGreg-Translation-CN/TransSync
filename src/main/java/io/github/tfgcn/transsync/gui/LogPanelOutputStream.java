@@ -58,7 +58,7 @@ class LogPanelOutputStream extends OutputStream {
     public void flush() throws IOException {
         synchronized (buffer) {
             // 如果缓冲区有内容，则发送到 LogPanel
-            if (buffer.length() != 0) {
+            if (!buffer.isEmpty()) {
                 String message = buffer.toString();
                 
                 // 清理 ANSI 转义序列

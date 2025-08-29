@@ -12,7 +12,6 @@ import io.github.tfgcn.transsync.service.model.FileScanResult;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -30,7 +29,7 @@ public class DashboardPanel extends JPanel {
 
     private ProjectInfoPanel projectInfoPanel;
     private JLabel paratranzStatusLabel;
-    private JButton uploadOriginalsButton;  // 上传同步按钮
+    private JButton uploadSourcesButton;  // 上传同步按钮
     private JButton uploadTranslationsButton;  // 上传同步按钮
     private JButton downloadTranslationsButton; // 下载同步按钮
 
@@ -52,13 +51,13 @@ public class DashboardPanel extends JPanel {
         paratranzStatusLabel = new JLabel("检查中...");
 
         // 同步按钮
-        uploadOriginalsButton = new JButton("上传原文");
+        uploadSourcesButton = new JButton("上传原文");
         uploadTranslationsButton = new JButton("上传译文");
         downloadTranslationsButton = new JButton("下载译文");
 
         // 统一按钮大小
         Dimension buttonSize = new Dimension(120, 25);
-        uploadOriginalsButton.setPreferredSize(buttonSize);
+        uploadSourcesButton.setPreferredSize(buttonSize);
         uploadTranslationsButton.setPreferredSize(buttonSize);
         downloadTranslationsButton.setPreferredSize(buttonSize);
     }
@@ -80,7 +79,7 @@ public class DashboardPanel extends JPanel {
 
         // 2. 底部操作区 - 两个同步按钮和进度条
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        controlPanel.add(uploadOriginalsButton);
+        controlPanel.add(uploadSourcesButton);
         controlPanel.add(uploadTranslationsButton);
         controlPanel.add(downloadTranslationsButton);
 
@@ -109,7 +108,7 @@ public class DashboardPanel extends JPanel {
     }
 
     private void setupEventHandlers() {
-        uploadOriginalsButton.addActionListener(e -> startUploadOriginals());
+        uploadSourcesButton.addActionListener(e -> startUploadSources());
         uploadTranslationsButton.addActionListener(e -> startUploadTranslations());
         downloadTranslationsButton.addActionListener(e -> startDownloadTranslations());
     }
@@ -196,7 +195,7 @@ public class DashboardPanel extends JPanel {
     /**
      * 上传原文逻辑
      */
-    public void startUploadOriginals() {
+    public void startUploadSources() {
         try {
             disableButtons();
 
@@ -204,7 +203,7 @@ public class DashboardPanel extends JPanel {
             SyncService service = getSyncService();
 
             // 2. 获取待处理文件列表（提前检查，无文件则提示）
-            List<FileScanResult> fileScanResults = service.getOriginalFiles();
+            List<FileScanResult> fileScanResults = service.getSourceFiles();
             if (fileScanResults.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "没有需要上传的原文文件", "提示", JOptionPane.INFORMATION_MESSAGE);
                 return;
@@ -217,7 +216,7 @@ public class DashboardPanel extends JPanel {
             ProgressDialog dialog = new ProgressDialog(
                     (Frame) SwingUtilities.getWindowAncestor(this),
                     "上传原文",
-                    TaskType.UPLOAD_ORIGINALS,
+                    TaskType.UPLOAD_SOURCES,
                     service,
                     fileScanResults,
                     null // 无需force参数
@@ -237,13 +236,13 @@ public class DashboardPanel extends JPanel {
     }
 
     public void disableButtons() {
-        uploadOriginalsButton.setEnabled(false);
+        uploadSourcesButton.setEnabled(false);
         uploadTranslationsButton.setEnabled(false);
         downloadTranslationsButton.setEnabled(false);
     }
 
     public void enableButtons() {
-        uploadOriginalsButton.setEnabled(true);
+        uploadSourcesButton.setEnabled(true);
         uploadTranslationsButton.setEnabled(true);
         downloadTranslationsButton.setEnabled(true);
     }

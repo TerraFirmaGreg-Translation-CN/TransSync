@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
  * @author yanmaoyuan
  */
 @Slf4j
-@CommandLine.Command(name = "down-trans", mixinStandardHelpOptions = true, version = Constants.VERSION,
+@CommandLine.Command(name = "download-translation", mixinStandardHelpOptions = true, version = Constants.VERSION,
         description ="Download translations from paratranz.")
 public class DownloadTranslationsCommand extends BaseCommand implements Callable<Integer> {
     @Override

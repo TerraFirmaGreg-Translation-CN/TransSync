@@ -109,7 +109,7 @@ public class SyncService {
     /**
      * 获取待上传的文件列表
      */
-    public List<FileScanResult> getOriginalFiles() {
+    public List<FileScanResult> getSourceFiles() {
         if (rules == null || rules.isEmpty()) {
             throw new RuntimeException("未配置文件扫描规则，请先配置扫描规则");
         }
@@ -148,13 +148,13 @@ public class SyncService {
     /**
      * 上传原文
      */
-    public void uploadOriginals() throws IOException, ApiException {
+    public void uploadSources() throws IOException, ApiException {
         // 扫描远程服务器上已有的文件
         fetchRemoteFiles();
 
         log.info("Scanning language files");
         // 扫描语言文件夹下的 en_us 目录，把文本上传到 paratranz
-        List<FileScanResult> fileList = getOriginalFiles();
+        List<FileScanResult> fileList = getSourceFiles();
 
         log.info("Found files: {}", fileList.size());
         for (FileScanResult item : fileList) {
@@ -210,7 +210,7 @@ public class SyncService {
      * @throws IOException
      * @throws ApiException
      */
-    public String uploadOriginalFile(FileScanResult scannedFile) throws IOException, ApiException {
+    public String uploadSourceFile(FileScanResult scannedFile) throws IOException, ApiException {
         File file = new File(workDir + SEPARATOR + scannedFile.getSourceFilePath());
         String remoteFolder = scannedFile.getTranslationFileFolder();
 

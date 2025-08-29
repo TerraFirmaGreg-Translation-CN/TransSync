@@ -14,15 +14,16 @@ import picocli.CommandLine;
 import java.util.concurrent.Callable;
 
 import static io.github.tfgcn.transsync.Constants.*;
+
 /**
  * desc: 上传原文
  *
  * @author yanmaoyuan
  */
 @Slf4j
-@CommandLine.Command(name = "up-origin", mixinStandardHelpOptions = true, version = Constants.VERSION,
-        description ="Upload original file to paratranz.")
-public class UploadOriginCommand extends BaseCommand implements Callable<Integer> {
+@CommandLine.Command(name = "upload-source", mixinStandardHelpOptions = true, version = Constants.VERSION,
+        description ="Upload source file to paratranz.")
+public class UploadSourceCommand extends BaseCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
@@ -52,7 +53,7 @@ public class UploadOriginCommand extends BaseCommand implements Callable<Integer
         app.setRules(config.getRules());
 
         // 执行上传
-        app.uploadOriginals();
+        app.uploadSources();
 
         log.info("Done.");
 

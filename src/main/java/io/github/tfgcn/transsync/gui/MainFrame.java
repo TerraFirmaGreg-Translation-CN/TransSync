@@ -19,7 +19,7 @@ public class MainFrame extends JFrame {
     JMenuItem exitItem;
 
     JMenu toolsMenu;
-    JMenuItem uploadOriginalFiles;
+    JMenuItem uploadSourceFiles;
     JMenuItem uploadTranslatedFiles;
     JMenuItem downloadTranslatedFiles;
 
@@ -82,9 +82,9 @@ public class MainFrame extends JFrame {
 
         // 工具菜单
         toolsMenu = new JMenu("工具");
-        uploadOriginalFiles = new JMenuItem("上传原文");
-        uploadOriginalFiles.addActionListener(e -> dashboardPanel.startUploadOriginals());
-        toolsMenu.add(uploadOriginalFiles);
+        uploadSourceFiles = new JMenuItem("上传原文");
+        uploadSourceFiles.addActionListener(e -> dashboardPanel.startUploadSources());
+        toolsMenu.add(uploadSourceFiles);
         uploadTranslatedFiles = new JMenuItem("上传译文");
         uploadTranslatedFiles.addActionListener(e -> dashboardPanel.startUploadTranslations());
         toolsMenu.add(uploadTranslatedFiles);
@@ -135,7 +135,7 @@ public class MainFrame extends JFrame {
         fileMenu.setText(I18n.getString("menu.file"));
         exitItem.setText(I18n.getString("menu.file.exit"));
         toolsMenu.setText(I18n.getString("menu.tool"));
-        uploadOriginalFiles.setText(I18n.getString("menu.tool.uploadOriginalFiles"));
+        uploadSourceFiles.setText(I18n.getString("menu.tool.uploadSourceFiles"));
         uploadTranslatedFiles.setText(I18n.getString("menu.tool.uploadTranslatedFiles"));
         downloadTranslatedFiles.setText(I18n.getString("menu.tool.downloadTranslatedFiles"));
         helpMenu.setText(I18n.getString("menu.help"));
