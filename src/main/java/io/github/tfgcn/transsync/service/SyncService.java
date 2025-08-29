@@ -2,6 +2,7 @@ package io.github.tfgcn.transsync.service;
 
 import com.google.gson.reflect.TypeToken;
 import io.github.tfgcn.transsync.Constants;
+import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.paratranz.api.StringsApi;
 import io.github.tfgcn.transsync.paratranz.error.ApiException;
 import io.github.tfgcn.transsync.paratranz.api.FilesApi;
@@ -111,7 +112,7 @@ public class SyncService {
      */
     public List<FileScanResult> getSourceFiles() {
         if (rules == null || rules.isEmpty()) {
-            throw new RuntimeException("未配置文件扫描规则，请先配置扫描规则");
+            throw new RuntimeException(I18n.getString("message.noRules"));
         }
 
         List<FileScanResult> fileList = new ArrayList<>(100);
@@ -218,12 +219,12 @@ public class SyncService {
         FilesDto remoteFile = remoteFilesMap.get(scannedFile.getTranslationFilePath());
         if (remoteFile == null) {
             uploadFile(remoteFolder, file);
-            return "完成 - 新文件";
+            return I18n.getString("label.completed.newFile");
         } else {
             try (FileInputStream fis = new FileInputStream(file)) {
                 String md5 = DigestUtils.md5Hex(fis);
                 if (md5.equals(remoteFile.getHash())) {
-                    return "跳过 - 未更新";
+                    return I18n.getString("label.skipped.notModified");
                 }
             }
 
@@ -235,7 +236,7 @@ public class SyncService {
                 log.info("update success: {}", updateResp.body());
             }
 
-            return "完成 - 已更新";
+            return I18n.getString("label.completed.updated");
         }
     }
 
@@ -262,14 +263,14 @@ public class SyncService {
     public String downloadTranslation(FilesDto remoteFile) throws IOException, ApiException {
         List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
         if (translations == null || translations.isEmpty()) {
-            return "跳过 - 无翻译";
+            return I18n.getString("label.skipped.notTranslated");
         }
 
         DownloadTranslationResult result = saveTranslations(remoteFile, translations);
         if ("skip".equals(result.getStatus())) {
-            return "跳过 - 未更新 " + formatFileSize(result.getBytes());
+            return I18n.getString("label.skipped.notModified") + " " + formatFileSize(result.getBytes());
         } else {
-            return "完成 - " + formatFileSize(result.getBytes());
+            return I18n.getString("label.completed.updated") + " " + formatFileSize(result.getBytes());
         }
     }
 
@@ -307,18 +308,18 @@ public class SyncService {
                 String md5 = DigestUtils.md5Hex(fis);
                 String downloadMd5 = DigestUtils.md5Hex(body);
                 if (md5.equals(downloadMd5)) {
-                    log.info("文件未更新: {}", remoteFile.getName());
+                    log.info("File not modified: {}", remoteFile.getName());
                     result.setStatus("skip");
                 } else {
                     JsonUtils.writeFile(file, map);
-                    log.info("文件已更新: {}", remoteFile.getName());
+                    log.info("File updated: {}", remoteFile.getName());
                     result.setStatus("update");
                 }
             }
         } else {
             // 文件不存在，直接写入
             JsonUtils.writeFile(file, map);
-            log.info("文件已保存: {}", remoteFile.getName());
+            log.info("File saved: {}", remoteFile.getName());
             result.setStatus("create");
         }
 
@@ -336,7 +337,7 @@ public class SyncService {
         fetchRemoteFiles();
 
         if (remoteFiles == null || remoteFiles.isEmpty()) {
-            log.info("没有远程文件");
+            log.info("No remote files found");
             return;
         }
 
@@ -350,15 +351,15 @@ public class SyncService {
         String absolutePath = workDir + SEPARATOR + relativePath;
         File file = new File(absolutePath);
         if (!file.exists() || !file.isFile()) {
-            log.info("文件不存在: {}", relativePath);
-            return "失败 - 文件不存在";
+            log.info("File not exist: {}", relativePath);
+            return I18n.getString("label.failed.notExists");
         }
 
         // 读取远程译文
         List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
         if (translations == null || translations.isEmpty()) {
-            log.info("没有远程译文: {}", relativePath);
-            return "跳过 - 无需翻译";
+            log.info("Not translated: {}", relativePath);
+            return I18n.getString("label.skipped.notTranslated");
         }
 
         // 读取本地汉化文件
@@ -411,9 +412,9 @@ public class SyncService {
         }
         log.info("上传译文完成: {}, 更新词条数: {}", relativePath, count);
         if (count > 0) {
-            return "完成 - 更新 " + count + " 词条";
+            return I18n.getString("label.completed.updated") + " " + count + I18n.getString("label.strings");
         } else {
-            return "完成 - 未更新";
+            return I18n.getString("label.completed.notModified");
         }
     }
 }
