@@ -5,6 +5,11 @@ import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
 
+/**
+ * desc: 用户相关接口
+ *
+ * @author yanmaoyuan
+ */
 public interface UsersApi {
 
     @GET("users/{userId}")

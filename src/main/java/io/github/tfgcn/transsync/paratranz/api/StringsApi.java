@@ -1,8 +1,10 @@
 package io.github.tfgcn.transsync.paratranz.api;
 
 import io.github.tfgcn.transsync.paratranz.model.PageResult;
+import io.github.tfgcn.transsync.paratranz.model.strings.CreateStringsReqDto;
 import io.github.tfgcn.transsync.paratranz.model.strings.StringItem;
 import io.github.tfgcn.transsync.paratranz.model.strings.StringsDto;
+import io.github.tfgcn.transsync.paratranz.model.strings.UpdateStringsReqDto;
 import retrofit2.Call;
 import retrofit2.http.*;
 
@@ -31,18 +33,18 @@ public interface StringsApi {
      * @return 创建结果
      */
     @POST("projects/{projectId}/strings")
-    Call<Void> createString(@Path("projectId") Integer projectId,
-                            @Body Object data);
+    Call<StringsDto> createString(@Path("projectId") Integer projectId,
+                                  @Body CreateStringsReqDto data);
 
     /**
-     * 更新项目词条
+     * 批量修改或删除词条
      * @param projectId 项目ID
      * @param data 词条数据
      * @return 更新结果
      */
     @PUT("projects/{projectId}/strings")
-    Call<Void> updateStrings(@Path("projectId") Integer projectId,
-                             @Body Object data);
+    Call<StringsDto> updateStrings(@Path("projectId") Integer projectId,
+                             @Body UpdateStringsReqDto data);
 
     /**
      * 通过ID获取词条信息
