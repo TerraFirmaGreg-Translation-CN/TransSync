@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+import static io.github.tfgcn.transync.paratranz.TestUtils.PROJECT_ID;
+
 /**
  * desc: 术语接口测试
  *
@@ -35,7 +37,7 @@ class TermsApiTest {
             GetTermsReqDto reqDto = new GetTermsReqDto();
             reqDto.setPage(1);
             reqDto.setPageSize(10);
-            pageResult = termsApi.getTerms(1, reqDto.asMap()).execute().body();
+            pageResult = termsApi.getTerms(PROJECT_ID, reqDto.asMap()).execute().body();
         } catch (IOException e) {
             log.error("error", e);
             pageResult = null;
