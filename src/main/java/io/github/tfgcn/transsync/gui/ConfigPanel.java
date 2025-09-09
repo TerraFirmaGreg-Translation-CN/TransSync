@@ -198,9 +198,9 @@ public class ConfigPanel extends JPanel {
 
             notifyConfigChanged(config);
             
-            JOptionPane.showMessageDialog(this, "配置保存成功", "成功", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, I18n.getString("message.saveSuccess"), I18n.getString("dialog.title.success"), JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "保存失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, I18n.getString("message.saveFailed") + e.getMessage(), I18n.getString("dialog.title.error"), JOptionPane.ERROR_MESSAGE);
         }
     }
     
