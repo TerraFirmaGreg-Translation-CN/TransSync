@@ -16,6 +16,7 @@ import io.github.tfgcn.transsync.service.model.FileScanRequest;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
 import io.github.tfgcn.transsync.service.model.FileScanRule;
 import io.github.tfgcn.transsync.utils.JsonUtils;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
@@ -159,7 +160,7 @@ public class SyncService {
 
         log.info("Found files: {}", fileList.size());
         for (FileScanResult item : fileList) {
-            File file = new File(workDir + SEPARATOR + item.getSourceFilePath());
+            File file = getAbsoluteFile(item.getSourceFilePath());
             String remoteFolder = item.getTranslationFileFolder();
 
             FilesDto remoteFile = remoteFilesMap.get(item.getTranslationFilePath());
@@ -212,7 +213,7 @@ public class SyncService {
      * @throws ApiException
      */
     public String uploadSourceFile(FileScanResult scannedFile) throws IOException, ApiException {
-        File file = new File(workDir + SEPARATOR + scannedFile.getSourceFilePath());
+        File file = getAbsoluteFile(scannedFile.getSourceFilePath());
         String remoteFolder = scannedFile.getTranslationFileFolder();
 
         // 生成上传 paratranz 的最终文件名。可用于比较远程文件是否已存在
@@ -298,7 +299,7 @@ public class SyncService {
 
         String body = JsonUtils.toJson(map);
 
-        File file = new File(workDir + SEPARATOR + remoteFile.getName());
+        File file = getAbsoluteFile(remoteFile.getName());
         FileUtils.createParentDirectories(file);
 
         // 文件存在
@@ -348,7 +349,7 @@ public class SyncService {
 
     public String uploadTranslation(FilesDto remoteFile, Boolean force) throws IOException, ApiException {
         String relativePath = remoteFile.getName();
-        String absolutePath = workDir + SEPARATOR + relativePath;
+        String absolutePath = getAbsolutePath(relativePath);
         File file = new File(absolutePath);
         if (!file.exists() || !file.isFile()) {
             log.info("File not exist: {}", relativePath);
@@ -416,5 +417,13 @@ public class SyncService {
         } else {
             return I18n.getString("label.completed.notModified");
         }
+    }
+
+    public File getAbsoluteFile(String relativePath) {
+        return new File(workDir + SEPARATOR + relativePath);
+    }
+
+    public String getAbsolutePath(String relativePath) {
+        return workDir + SEPARATOR + relativePath;
     }
 }
