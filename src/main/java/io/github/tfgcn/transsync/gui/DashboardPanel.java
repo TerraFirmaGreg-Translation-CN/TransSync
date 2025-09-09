@@ -9,6 +9,7 @@ import io.github.tfgcn.transsync.paratranz.api.ProjectsApi;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.projects.ProjectsDto;
 import io.github.tfgcn.transsync.service.SyncService;
+import io.github.tfgcn.transsync.service.model.FileDownloadRequest;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,11 @@ import lombok.extern.slf4j.Slf4j;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_MESSAGE;
 import static io.github.tfgcn.transsync.Constants.ENSURE_FORCE_TITLE;
@@ -138,25 +143,67 @@ public class DashboardPanel extends JPanel {
         try {
             SyncService service = getSyncService();
 
-            // 3. 获取待处理文件列表
             List<FilesDto> files = service.fetchRemoteFiles();
             if (files.isEmpty()) {
                 JOptionPane.showMessageDialog(this, I18n.getString("message.nothingToDownload"));
                 return;
             }
 
-            // 4. 创建并显示ProgressDialog
+            List<FileScanResult> sourceFiles = service.getSourceFiles();
+            if (sourceFiles.isEmpty()) {
+                JOptionPane.showMessageDialog(this, I18n.getString("message.nothingToDownload"));
+                return;
+            }
+
+            // remove everything not in source files
+            Map<String, FileScanResult> sourceFilesMap = sourceFiles.stream().collect(Collectors.toMap(FileScanResult::getTranslationFilePath, file -> file));
+            files.removeIf(file -> !sourceFilesMap.containsKey(file.getName()));
+
+            List<FileDownloadRequest> requestList = new ArrayList<>(sourceFiles.size());
+            for (FilesDto file : files) {
+                if (sourceFilesMap.containsKey(file.getName())) {
+                    FileScanResult sourceFile = sourceFilesMap.get(file.getName());
+
+                    FileDownloadRequest request = new FileDownloadRequest();
+                    request.setSourceFilePath(sourceFile.getSourceFilePath());
+                    request.setTranslationFilePath(sourceFile.getTranslationFilePath());
+
+                    request.setId(file.getId());
+                    request.setName(file.getName());
+                    request.setProject(file.getProject());
+                    request.setFormat(file.getFormat());
+                    request.setTotal(file.getTotal());
+                    request.setTranslated(file.getTranslated());
+                    request.setDisputed(file.getDisputed());
+                    request.setChecked(file.getChecked());
+                    request.setReviewed(file.getReviewed());
+                    request.setHidden(file.getHidden());
+                    request.setWords(file.getWords());
+                    request.setHash(file.getHash());
+                    request.setFolder(file.getFolder());
+                    request.setProgress(file.getProgress());
+                    request.setExtra(file.getExtra());
+                    request.setLocked(file.getLocked());
+                    request.setModifiedAt(file.getModifiedAt());
+                    request.setCreatedAt(file.getCreatedAt());
+                    request.setUpdatedAt(file.getUpdatedAt());
+
+                    requestList.add(request);
+                } else {
+                    log.debug("ignore remote file:{}", file);
+                }
+            }
+
             ProgressDialog dialog = new ProgressDialog(
                     (Frame) SwingUtilities.getWindowAncestor(this),
                     I18n.getString("dialog.title.downloadTranslatedFiles"),
                     TaskType.DOWNLOAD_TRANSLATIONS,
                     service,
-                    files,
+                    requestList,
                     null
             );
             dialog.setVisible(true);
 
-            // 5. 任务结束后刷新UI
             loadProjectInfo();
             updateStatus();
         } catch (Exception e) {

@@ -3,6 +3,7 @@ package io.github.tfgcn.transsync.gui;
 import io.github.tfgcn.transsync.I18n;
 import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.service.SyncService;
+import io.github.tfgcn.transsync.service.model.FileDownloadRequest;
 import io.github.tfgcn.transsync.service.model.FileScanResult;
 import lombok.Getter;
 
@@ -283,7 +284,7 @@ public class ProgressDialog extends JDialog {
                         break;
                     }
                     case DOWNLOAD_TRANSLATIONS: {
-                        result = syncService.downloadTranslation((FilesDto) file);
+                        result = syncService.downloadTranslation((FileDownloadRequest) file);
                         break;
                     }
                     default:
