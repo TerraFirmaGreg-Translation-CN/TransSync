@@ -55,16 +55,16 @@ public class ConfigPanel extends JPanel {
         
         // 初始化规则表格相关组件
         addRuleButton = new JButton("添加规则");
-        String[] columnNames = {"源文件模式", "翻译文件模式", "原文语言", "译文语言", "操作"};
+        String[] columnNames = {"源文件模式", "翻译文件模式", "原文语言", "译文语言", "启用", "操作"};
         rulesTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4; // 只有最后一列(操作列)可编辑
+                return column == (columnNames.length - 1); // 只有最后一列(操作列)可编辑
             }
         };
         rulesTable = new JTable(rulesTableModel);
-        rulesTable.getColumnModel().getColumn(4).setCellRenderer(new ButtonRenderer());
-        rulesTable.getColumnModel().getColumn(4).setCellEditor(new ButtonEditor(new JCheckBox()));
+        rulesTable.getColumnModel().getColumn(columnNames.length - 1).setCellRenderer(new ButtonRenderer());
+        rulesTable.getColumnModel().getColumn(columnNames.length - 1).setCellEditor(new ButtonEditor(new JCheckBox()));
         // 固定列度，后3列比较窄，前3列自动缩放
         for (int i = 2; i < rulesTableModel.getColumnCount(); i++) {
             rulesTable.getColumnModel().getColumn(i).setPreferredWidth(80);
@@ -198,9 +198,9 @@ public class ConfigPanel extends JPanel {
 
             notifyConfigChanged(config);
             
-            JOptionPane.showMessageDialog(this, "配置保存成功", "成功", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, I18n.getString("message.saveSuccess"), I18n.getString("dialog.title.success"), JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "保存失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, I18n.getString("message.saveFailed") + e.getMessage(), I18n.getString("dialog.title.error"), JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -215,6 +215,7 @@ public class ConfigPanel extends JPanel {
                 rule.getTranslationPattern(),
                 rule.getSrcLang(),
                 rule.getDestLang(),
+                Boolean.TRUE.equals(rule.getEnabled()),
                 "button.edit"
             };
             rulesTableModel.addRow(row);
@@ -263,7 +264,7 @@ public class ConfigPanel extends JPanel {
     }
     
     // 按钮渲染器，用于在表格中显示按钮
-    private class ButtonRenderer extends JButton implements TableCellRenderer {
+    private static class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
             setOpaque(true);
         }
@@ -285,7 +286,7 @@ public class ConfigPanel extends JPanel {
     
     // 按钮编辑器，用于处理表格中按钮的点击事件
     private class ButtonEditor extends DefaultCellEditor {
-        private JButton button;
+        private final JButton button;
         private String label;
         private boolean isPushed;
 
@@ -344,13 +345,14 @@ public class ConfigPanel extends JPanel {
 
         saveButton.setText(I18n.getString("button.save"));
 
-        rulesTable.getColumnModel().getColumn(4).setCellRenderer(new ButtonRenderer());
-        rulesTable.getColumnModel().getColumn(4).setCellEditor(new ButtonEditor(new JCheckBox()));
+        rulesTable.getColumnModel().getColumn(5).setCellRenderer(new ButtonRenderer());
+        rulesTable.getColumnModel().getColumn(5).setCellEditor(new ButtonEditor(new JCheckBox()));
 
         rulesTable.getColumnModel().getColumn(0).setHeaderValue(I18n.getString("ruleTable.headers[0]"));
         rulesTable.getColumnModel().getColumn(1).setHeaderValue(I18n.getString("ruleTable.headers[1]"));
         rulesTable.getColumnModel().getColumn(2).setHeaderValue(I18n.getString("ruleTable.headers[2]"));
         rulesTable.getColumnModel().getColumn(3).setHeaderValue(I18n.getString("ruleTable.headers[3]"));
         rulesTable.getColumnModel().getColumn(4).setHeaderValue(I18n.getString("ruleTable.headers[4]"));
+        rulesTable.getColumnModel().getColumn(5).setHeaderValue(I18n.getString("ruleTable.headers[5]"));
     }
 }

@@ -11,10 +11,7 @@ import io.github.tfgcn.transsync.paratranz.model.files.FilesDto;
 import io.github.tfgcn.transsync.paratranz.model.files.FileUploadRespDto;
 import io.github.tfgcn.transsync.paratranz.model.files.TranslationDto;
 import io.github.tfgcn.transsync.paratranz.model.strings.StringItem;
-import io.github.tfgcn.transsync.service.model.DownloadTranslationResult;
-import io.github.tfgcn.transsync.service.model.FileScanRequest;
-import io.github.tfgcn.transsync.service.model.FileScanResult;
-import io.github.tfgcn.transsync.service.model.FileScanRule;
+import io.github.tfgcn.transsync.service.model.*;
 import io.github.tfgcn.transsync.utils.JsonUtils;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +27,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static io.github.tfgcn.transsync.Constants.*;
 
@@ -119,6 +117,9 @@ public class SyncService {
 
         Set<String> distinct = new HashSet<>();
         for (FileScanRule rule : rules) {
+            if (Boolean.FALSE.equals(rule.getEnabled())) {
+                continue;
+            }
             FileScanRequest request = new FileScanRequest();
             request.setWorkspace(workDir);
             request.setSourceFilePattern(rule.getSourcePattern());
@@ -159,7 +160,7 @@ public class SyncService {
 
         log.info("Found files: {}", fileList.size());
         for (FileScanResult item : fileList) {
-            File file = new File(workDir + SEPARATOR + item.getSourceFilePath());
+            File file = getAbsoluteFile(item.getSourceFilePath());
             String remoteFolder = item.getTranslationFileFolder();
 
             FilesDto remoteFile = remoteFilesMap.get(item.getTranslationFilePath());
@@ -212,7 +213,7 @@ public class SyncService {
      * @throws ApiException
      */
     public String uploadSourceFile(FileScanResult scannedFile) throws IOException, ApiException {
-        File file = new File(workDir + SEPARATOR + scannedFile.getSourceFilePath());
+        File file = getAbsoluteFile(scannedFile.getSourceFilePath());
         String remoteFolder = scannedFile.getTranslationFileFolder();
 
         // 生成上传 paratranz 的最终文件名。可用于比较远程文件是否已存在
@@ -249,13 +250,27 @@ public class SyncService {
         // 扫描远程文件文件
         fetchRemoteFiles();
 
+        List<FileScanResult> sourceFiles = getSourceFiles();
+        if (sourceFiles.isEmpty() || remoteFiles.isEmpty()) {
+            log.info("No files to download");
+            return;
+        }
+
+        Map<String, FileScanResult> sourceFilesMap = sourceFiles.stream().collect(Collectors.toMap(FileScanResult::getTranslationFilePath, file -> file));
+
         // 执行上传操作
         for (FilesDto remoteFile : remoteFiles) {
-            List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
-            if (translations == null || translations.isEmpty()) {
-                log.info("缺少翻译: {}", remoteFile.getName());
+            if (sourceFilesMap.containsKey(remoteFile.getName())) {
+                List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
+                if (translations == null || translations.isEmpty()) {
+                    log.info("缺少翻译: {}", remoteFile.getName());
+                } else {
+                    FileScanResult scannedFile = sourceFilesMap.get(remoteFile.getName());
+                    saveTranslations(remoteFile, translations, scannedFile.getSourceFilePath());
+                }
             } else {
-                saveTranslations(remoteFile, translations);
+                // remove everything not in source files
+                log.info("忽略远程文件: {}", remoteFile.getName());
             }
         }
     }
@@ -267,6 +282,20 @@ public class SyncService {
         }
 
         DownloadTranslationResult result = saveTranslations(remoteFile, translations);
+        if ("skip".equals(result.getStatus())) {
+            return I18n.getString("label.skipped.notModified") + " " + formatFileSize(result.getBytes());
+        } else {
+            return I18n.getString("label.completed.updated") + " " + formatFileSize(result.getBytes());
+        }
+    }
+
+    public String downloadTranslation(FileDownloadRequest remoteFile) throws IOException, ApiException {
+        List<TranslationDto> translations = filesApi.getTranslate(projectId, remoteFile.getId()).execute().body();
+        if (translations == null || translations.isEmpty()) {
+            return I18n.getString("label.skipped.notTranslated");
+        }
+
+        DownloadTranslationResult result = saveTranslations(remoteFile, translations, remoteFile.getSourceFilePath());
         if ("skip".equals(result.getStatus())) {
             return I18n.getString("label.skipped.notModified") + " " + formatFileSize(result.getBytes());
         } else {
@@ -298,7 +327,7 @@ public class SyncService {
 
         String body = JsonUtils.toJson(map);
 
-        File file = new File(workDir + SEPARATOR + remoteFile.getName());
+        File file = getAbsoluteFile(remoteFile.getName());
         FileUtils.createParentDirectories(file);
 
         // 文件存在
@@ -328,6 +357,77 @@ public class SyncService {
     }
 
     /**
+     * 保存译文到文件
+     *
+     * @param remoteFile 源文件
+     * @param translations 翻译结果
+     * @param sourceFilePath 源文件路径
+     * @return 文件大小
+     * @throws IOException 保存失败时抛出
+     */
+    public DownloadTranslationResult saveTranslations(FilesDto remoteFile, List<TranslationDto> translations, String sourceFilePath) throws IOException {
+        // read source json
+        File sourceFile = getAbsoluteFile(sourceFilePath);
+        Type mapType = new TypeToken<LinkedHashMap<String, String>>() {}.getType();
+        Map<String, String> sourceDict = JsonUtils.readFile(sourceFile, mapType);
+
+        DownloadTranslationResult result = new DownloadTranslationResult();
+
+        // 创建一个 Map 用于存储翻译结果，使用 LinkedHashMap 保持插入顺序。
+        Map<String, String> translatedDict = new LinkedHashMap<>();
+        for (TranslationDto item : translations) {
+            StageEnum stage = StageEnum.of(item.getStage());
+            if (stage == StageEnum.HIDDEN || stage == StageEnum.UNTRANSLATED) {
+                translatedDict.put(item.getKey(), item.getOriginal());
+            } else {
+                translatedDict.put(item.getKey(), item.getTranslation());
+            }
+        }
+
+        // 创建一个 Map 用于存储翻译结果，使用 LinkedHashMap 保持插入顺序。
+        Map<String, String> json = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : sourceDict.entrySet()) {
+            String key = entry.getKey();
+            String value = translatedDict.get(key);
+            String original = entry.getValue();
+            if (value != null) {
+                json.put(key, value);
+            } else {
+                json.put(key, original);
+            }
+        }
+        String body = JsonUtils.toJson(json);
+
+        File file = getAbsoluteFile(remoteFile.getName());
+        FileUtils.createParentDirectories(file);
+
+        // 文件存在
+        if (file.exists()) {
+            // 比较文件内容是否更新
+            try (FileInputStream fis = new FileInputStream(file)) {
+                String md5 = DigestUtils.md5Hex(fis);
+                String downloadMd5 = DigestUtils.md5Hex(body);
+                if (md5.equals(downloadMd5)) {
+                    log.info("File not modified: {}", remoteFile.getName());
+                    result.setStatus("skip");
+                } else {
+                    JsonUtils.writeFile(file, json);
+                    log.info("File updated: {}", remoteFile.getName());
+                    result.setStatus("update");
+                }
+            }
+        } else {
+            // 文件不存在，直接写入
+            JsonUtils.writeFile(file, json);
+            log.info("File saved: {}", remoteFile.getName());
+            result.setStatus("create");
+        }
+
+        result.setBytes(body.getBytes(StandardCharsets.UTF_8).length);
+        return result;
+    }
+
+    /**
      * 上传译文
      * @param force 是否强制上传未翻译内容
      * @throws IOException
@@ -348,7 +448,7 @@ public class SyncService {
 
     public String uploadTranslation(FilesDto remoteFile, Boolean force) throws IOException, ApiException {
         String relativePath = remoteFile.getName();
-        String absolutePath = workDir + SEPARATOR + relativePath;
+        String absolutePath = getAbsolutePath(relativePath);
         File file = new File(absolutePath);
         if (!file.exists() || !file.isFile()) {
             log.info("File not exist: {}", relativePath);
@@ -416,5 +516,13 @@ public class SyncService {
         } else {
             return I18n.getString("label.completed.notModified");
         }
+    }
+
+    public File getAbsoluteFile(String relativePath) {
+        return new File(workDir + SEPARATOR + relativePath);
+    }
+
+    public String getAbsolutePath(String relativePath) {
+        return workDir + SEPARATOR + relativePath;
     }
 }

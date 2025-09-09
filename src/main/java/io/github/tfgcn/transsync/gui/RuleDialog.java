@@ -27,6 +27,7 @@ public class RuleDialog extends JDialog {
         ADD, CANCEL, DELETE
     }
     // UI 组件
+    private JCheckBox enabledCheckBox;
     private JTextField sourcePatternField;
     private JTextField translationPatternField;
     private JTextField srcLangField;
@@ -143,10 +144,14 @@ public class RuleDialog extends JDialog {
         ignoresScrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         panel.add(ignoresScrollPane, gbc);
 
+        enabledCheckBox = new JCheckBox(I18n.getString("label.enabled"));
+        enabledCheckBox.setSelected(Boolean.TRUE.equals(rule.getEnabled()));
+
         JButton scanButton = new JButton(I18n.getString("button.testScanFiles"));
         scanButton.addActionListener(e -> scanFiles());
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.add(enabledCheckBox);
         buttonPanel.add(scanButton);
 
         JPanel container = new JPanel(new BorderLayout());
@@ -330,6 +335,7 @@ public class RuleDialog extends JDialog {
     }
 
     private void onOk() {
+        rule.setEnabled(enabledCheckBox.isSelected());
         rule.setSourcePattern(sourcePatternField.getText());
         rule.setTranslationPattern(translationPatternField.getText());
         rule.setSrcLang(srcLangField.getText());

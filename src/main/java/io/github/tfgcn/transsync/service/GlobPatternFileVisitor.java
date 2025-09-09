@@ -72,8 +72,8 @@ public class GlobPatternFileVisitor extends SimpleFileVisitor<Path> {
     }
 
     @Override
-    public FileVisitResult visitFileFailed(Path file, IOException exc) {
+    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
         log.error("访问文件失败: {}", file, exc);
-        return FileVisitResult.CONTINUE;
+        throw exc;
     }
 }

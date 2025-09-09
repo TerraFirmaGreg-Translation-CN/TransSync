@@ -9,6 +9,7 @@ import java.util.List;
  */
 @Data
 public class FileScanRule {
+    private Boolean enabled;
     private String sourcePattern;
     private String translationPattern;
     private String srcLang;
@@ -18,6 +19,7 @@ public class FileScanRule {
     public FileScanRule() {}
     
     public FileScanRule(FileScanRule other) {
+        this.enabled = other.enabled;
         this.sourcePattern = other.sourcePattern;
         this.translationPattern = other.translationPattern;
         this.srcLang = other.srcLang;
