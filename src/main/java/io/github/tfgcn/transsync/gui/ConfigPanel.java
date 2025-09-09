@@ -59,7 +59,7 @@ public class ConfigPanel extends JPanel {
         rulesTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4; // 只有最后一列(操作列)可编辑
+                return column == (columnNames.length - 1); // 只有最后一列(操作列)可编辑
             }
         };
         rulesTable = new JTable(rulesTableModel);
