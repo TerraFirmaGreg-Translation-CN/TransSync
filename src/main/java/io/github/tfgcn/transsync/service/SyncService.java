@@ -120,6 +120,9 @@ public class SyncService {
 
         Set<String> distinct = new HashSet<>();
         for (FileScanRule rule : rules) {
+            if (Boolean.FALSE.equals(rule.getEnabled())) {
+                continue;
+            }
             FileScanRequest request = new FileScanRequest();
             request.setWorkspace(workDir);
             request.setSourceFilePattern(rule.getSourcePattern());
