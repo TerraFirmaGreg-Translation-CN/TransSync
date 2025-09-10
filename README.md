@@ -25,23 +25,39 @@
 
 ```json
 {
-    "token" : "Go https://paratranz.cn/users/my get your token",
-    "projectId" : 15950,
-    "httpLogLevel" : "NONE",
-    "workspace" : "..",
-    "rules" : [ {
-        "sourcePattern" : "Tools-Modern/LanguageMerger/LanguageFiles/**/en_us/**.json",
-        "translationPattern" : "%original_path_pre%/%language%/%original_path%/%original_file_name%",
-        "srcLang" : "en_us",
-        "destLang" : "zh_cn",
-        "ignores" : [ ]
-    }, {
-        "sourcePattern" : "Modpack-Modern/kubejs/assets/tfc/patchouli_books/field_guide/en_us/**.json",
-        "translationPattern" : "%original_path_pre%/%language%/%original_path%/%original_file_name%",
-        "srcLang" : "en_us",
-        "destLang" : "zh_cn",
-        "ignores" : [ "**/tfg_ores/*_index.json" ]
-    } ]
+  "token" : "Go https://paratranz.cn/users/my get your token",
+  "projectId" : 15950,
+  "httpLogLevel" : "NONE",
+  "workspace" : "..",
+  "rules": [
+    {
+      "enabled": true,
+      "sourcePattern": "Tools-Modern/LanguageMerger/LanguageFiles/**/en_us/*.json",
+      "translationPattern": "%original_path_pre%/%language%/%original_path%/%original_file_name%",
+      "srcLang": "en_us",
+      "destLang": "zh_cn",
+      "ignores": [
+        "tfg/en_us/ore_veins.json"
+      ]
+    },
+    {
+      "sourcePattern": "Modpack-Modern/kubejs/assets/tfc/patchouli_books/field_guide/en_us/**.json",
+      "translationPattern": "%original_path_pre%/%language%/%original_path%/%original_file_name%",
+      "srcLang": "en_us",
+      "destLang": "zh_cn",
+      "ignores": [
+        "**/tfg_ores/*_index.json"
+      ]
+    },
+    {
+      "enabled": false,
+      "sourcePattern": "Tools-Modern/LanguageMerger/LanguageFiles/tfg/en_us/Quests/*.json",
+      "translationPattern": "Tools-Modern/LanguageMerger/LanguageFiles/tfg/zh_cn/Quests/%original_file_name%",
+      "srcLang": "en_us",
+      "destLang": "zh_cn",
+      "ignores": []
+    }
+  ]
 }
 ```
 
@@ -51,6 +67,7 @@
 
 | 参数                 | 描述                                                                               |
 |:-------------------|:---------------------------------------------------------------------------------|
+| enabled            | 是否启用该规则。                                                                         |
 | workspace          | 工作目录，用于扫描待翻译的源文件，以及存储译文。程序只会扫描位于工作目录(workspace)下的文件和目录。                          |
 | sourcePattern      | 源文件匹配规则，用于识别要翻译的文件。支持[Glob](https://en.wikipedia.org/wiki/Glob_(programming))语法。 |
 | translationPattern | 映射译文规则，根据源文件路径生成译文路径。详见下文。                                                       |
@@ -63,6 +80,7 @@
   "workspace": "/data/tfgcn",
   "rules": [
     {
+      "enabled": true,
       "sourcePattern" : "Modpack-Modern/kubejs/assets/tfc/patchouli_books/field_guide/en_us/**.json",
       "translationPattern" : "%original_path_pre%/%language%/%original_path%/%original_file_name%",
       "srcLang" : "en_us",
