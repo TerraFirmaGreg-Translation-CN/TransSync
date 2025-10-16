@@ -491,8 +491,18 @@ public class SyncService {
             return;
         }
 
-        for (FilesDto remoteFile : remoteFiles) {
-            uploadTranslation(remoteFile, force);
+        List<FileScanResult> fileList = getSourceFiles();
+        if (fileList.isEmpty()) {
+            log.info("No source files found");
+            return;
+        }
+
+        for (FileScanResult file : fileList) {
+            String filePath = file.getTranslationFilePath();
+            FilesDto remoteFile = remoteFilesMap.get(filePath);
+            if (remoteFile != null) {
+                uploadTranslation(remoteFile, force);
+            }
         }
     }
 

@@ -230,11 +230,18 @@ public class DashboardPanel extends JPanel {
             SyncService service = getSyncService();
 
             // 3. 获取待处理文件列表
+            List<FileScanResult> sourceFiles = service.getSourceFiles();
+            if (sourceFiles.isEmpty()) {
+                JOptionPane.showMessageDialog(this, I18n.getString("message.nothingToUpload"));
+                return;
+            }
             List<FilesDto> files = service.fetchRemoteFiles();
             if (files.isEmpty()) {
                 JOptionPane.showMessageDialog(this, I18n.getString("message.nothingToUpload"));
                 return;
             }
+            Set<String> fileNames = sourceFiles.stream().map(FileScanResult::getTranslationFilePath).collect(Collectors.toSet());
+            List<FilesDto> filesToUpload = files.stream().filter(file -> fileNames.contains(file.getName())).collect(Collectors.toList());
 
             // 4. 创建并显示ProgressDialog
             ProgressDialog dialog = new ProgressDialog(
@@ -242,7 +249,7 @@ public class DashboardPanel extends JPanel {
                     I18n.getString("dialog.title.uploadTranslatedFiles"),
                     TaskType.UPLOAD_TRANSLATIONS,
                     service,
-                    files,
+                    filesToUpload,
                     force
             );
             dialog.setVisible(true);
