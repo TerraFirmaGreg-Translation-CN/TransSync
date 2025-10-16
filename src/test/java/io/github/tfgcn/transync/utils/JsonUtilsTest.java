@@ -4,7 +4,6 @@ import io.github.tfgcn.transsync.utils.JsonUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 

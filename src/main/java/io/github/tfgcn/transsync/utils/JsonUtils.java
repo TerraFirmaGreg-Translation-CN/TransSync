@@ -1,8 +1,6 @@
 package io.github.tfgcn.transsync.utils;
 
-import com.google.gson.FormattingStyle;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -15,13 +13,14 @@ import java.nio.charset.StandardCharsets;
  */
 public final class JsonUtils {
 
-    private static final Gson GSON;
+    public static final Gson GSON;
 
     static {
         GSON = new GsonBuilder()
                 .setFormattingStyle(FormattingStyle.PRETTY
                         .withIndent("    ")
                         .withNewline(System.lineSeparator()))
+                .setObjectToNumberStrategy(ToNumberPolicy.LAZILY_PARSED_NUMBER)
                 .serializeNulls()
                 .disableHtmlEscaping()
                 .create();

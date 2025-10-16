@@ -19,6 +19,7 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import retrofit2.Response;
 
 import java.io.File;
@@ -368,8 +369,8 @@ public class SyncService {
     public DownloadTranslationResult saveTranslations(FilesDto remoteFile, List<TranslationDto> translations, String sourceFilePath) throws IOException {
         // read source json
         File sourceFile = getAbsoluteFile(sourceFilePath);
-        Type mapType = new TypeToken<LinkedHashMap<String, String>>() {}.getType();
-        Map<String, String> sourceDict = JsonUtils.readFile(sourceFile, mapType);
+        Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+        Map<String, Object> sourceDict = JsonUtils.readFile(sourceFile, mapType);
 
         DownloadTranslationResult result = new DownloadTranslationResult();
 
@@ -384,19 +385,9 @@ public class SyncService {
             }
         }
 
-        // 创建一个 Map 用于存储翻译结果，使用 LinkedHashMap 保持插入顺序。
-        Map<String, String> json = new LinkedHashMap<>();
-        for (Map.Entry<String, String> entry : sourceDict.entrySet()) {
-            String key = entry.getKey();
-            String value = translatedDict.get(key);
-            String original = entry.getValue();
-            if (value != null) {
-                json.put(key, value);
-            } else {
-                json.put(key, original);
-            }
-        }
-        String body = JsonUtils.toJson(json);
+        // 递归更新嵌套结构
+        updateNestedStructure(sourceDict, translatedDict, null);
+        String body = JsonUtils.toJson(sourceDict);
 
         File file = getAbsoluteFile(remoteFile.getName());
         FileUtils.createParentDirectories(file);
@@ -411,20 +402,79 @@ public class SyncService {
                     log.info("File not modified: {}", remoteFile.getName());
                     result.setStatus("skip");
                 } else {
-                    JsonUtils.writeFile(file, json);
+                    JsonUtils.writeFile(file, sourceDict);
                     log.info("File updated: {}", remoteFile.getName());
                     result.setStatus("update");
                 }
             }
         } else {
             // 文件不存在，直接写入
-            JsonUtils.writeFile(file, json);
+            JsonUtils.writeFile(file, sourceDict);
             log.info("File saved: {}", remoteFile.getName());
             result.setStatus("create");
         }
 
         result.setBytes(body.getBytes(StandardCharsets.UTF_8).length);
         return result;
+    }
+
+    /**
+     * 递归更新嵌套的 JSON 结构
+     */
+    public static void updateNestedStructure(Map<String, Object> targetMap, Map<String, String> translatedDict, String parentKey) {
+        for (Map.Entry<String, Object> entry : targetMap.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            String currentKey = getCurrentKey(parentKey, key);
+
+            if (value instanceof String) {
+                // 如果是字符串值，直接查找对应的翻译
+                String translatedValue = translatedDict.get(currentKey);
+                if (translatedValue != null) {
+                    targetMap.put(key, translatedValue);
+                }
+                // 如果没有翻译，保持原值不变
+            } else if (value instanceof Map) {
+                // 如果是嵌套的 Map，递归处理
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nestedMap = (Map<String, Object>) value;
+                updateNestedStructure(nestedMap, translatedDict, currentKey);
+            } else if (value instanceof List) {
+                // 如果是数组，处理每个元素
+                @SuppressWarnings("unchecked")
+                List<Object> list = (List<Object>) value;
+                updateListStructure(list, translatedDict, currentKey);
+            }
+            // 其他类型（Number, Boolean等）保持不变
+        }
+    }
+
+    /**
+     * 更新数组结构
+     */
+    private static void updateListStructure(List<Object> list, Map<String, String> translatedDict, String parentKey) {
+        for (int i = 0; i < list.size(); i++) {
+            Object element = list.get(i);
+            String currentKey = getCurrentKey(parentKey, i);
+
+            if (element instanceof Map) {
+                // 数组元素是对象，递归处理
+                @SuppressWarnings("unchecked")
+                Map<String, Object> elementMap = (Map<String, Object>) element;
+                updateNestedStructure(elementMap, translatedDict, currentKey);
+            } else if (element instanceof List) {
+                // 嵌套数组，递归处理
+                @SuppressWarnings("unchecked")
+                List<Object> nestedList = (List<Object>) element;
+                updateListStructure(nestedList, translatedDict, currentKey);
+            } else if (element instanceof String) {
+                // 数组元素是字符串，查找对应的翻译
+                String translatedValue = translatedDict.get(currentKey);
+                if (translatedValue != null) {
+                    list.set(i, translatedValue);
+                }
+            }
+        }
     }
 
     /**
@@ -463,8 +513,12 @@ public class SyncService {
         }
 
         // 读取本地汉化文件
-        Type mapType = new TypeToken<Map<String, String>>() {}.getType();
-        Map<String, String> map = JsonUtils.readFile(file, mapType);
+        Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+        Map<String, Object> sourceMap = JsonUtils.readFile(file, mapType);
+
+        Map<String, String> flatSourceMap = new LinkedHashMap<>();
+
+        flattenNestedStructure(sourceMap, flatSourceMap, null);
 
         int count = 0;// 处理词条数
         for (TranslationDto item : translations) {
@@ -475,8 +529,8 @@ public class SyncService {
                 continue;
             }
 
-            if (map.containsKey(key)) {
-                String value = map.get(key);
+            if (flatSourceMap.containsKey(key)) {
+                String value = flatSourceMap.get(key);
                 if (value.equals(item.getOriginal())) {
                     // 译文和原文相同，属于未翻译内容。
                     if (stage != StageEnum.UNTRANSLATED && Boolean.TRUE.equals(force)) {
@@ -516,6 +570,69 @@ public class SyncService {
         } else {
             return I18n.getString("label.completed.notModified");
         }
+    }
+
+    /**
+     * 打平嵌套的JSON数据结构
+     */
+    public static void flattenNestedStructure(Map<String, Object> sourceMap, Map<String, String> toSave, String parentKey) {
+        for (Map.Entry<String, Object> entry : sourceMap.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            String currentKey = getCurrentKey(parentKey, key);
+
+            if (value instanceof String) {
+                toSave.put(currentKey, (String) value);
+                // 如果没有翻译，保持原值不变
+            } else if (value instanceof Map) {
+                // 如果是嵌套的 Map，递归处理
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nestedMap = (Map<String, Object>) value;
+                flattenNestedStructure(nestedMap, toSave, currentKey);
+            } else if (value instanceof List) {
+                // 如果是数组，处理每个元素
+                @SuppressWarnings("unchecked")
+                List<Object> list = (List<Object>) value;
+                flattenListStructure(list, toSave, currentKey);
+            }
+            // 其他类型（Number, Boolean等）保持不变
+        }
+    }
+
+    /**
+     * 打平数组结构
+     */
+    private static void flattenListStructure(List<Object> list, Map<String, String> toSaveMap, String parentKey) {
+        for (int i = 0; i < list.size(); i++) {
+            Object element = list.get(i);
+            String currentKey = getCurrentKey(parentKey, i);
+
+            if (element instanceof Map) {
+                // 数组元素是对象，递归处理
+                @SuppressWarnings("unchecked")
+                Map<String, Object> elementMap = (Map<String, Object>) element;
+                flattenNestedStructure(elementMap, toSaveMap, currentKey);
+            } else if (element instanceof List) {
+                // 嵌套数组，递归处理
+                @SuppressWarnings("unchecked")
+                List<Object> nestedList = (List<Object>) element;
+                flattenListStructure(nestedList, toSaveMap, currentKey);
+            } else if (element instanceof String) {
+                // 数组元素是字符串，查找对应的翻译
+                String translatedValue = toSaveMap.get(currentKey);
+                if (translatedValue != null) {
+                    list.set(i, translatedValue);
+                }
+            }
+        }
+    }
+
+    private static String getCurrentKey(String parentKey, String key) {
+        return parentKey == null || parentKey.isEmpty() ? key : parentKey + "->" + key;
+    }
+
+    private static String getCurrentKey(String parentKey, int index) {
+        return parentKey == null || parentKey.isEmpty() ? index + "" : parentKey + "->" + index;
     }
 
     public File getAbsoluteFile(String relativePath) {
