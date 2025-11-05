@@ -27,6 +27,8 @@ public class MainFrame extends JFrame {
     JMenu langMenu;
     JMenuItem langZhItem;
     JMenuItem langEnItem;
+    JMenuItem langJaItem;
+    JMenuItem langRuItem;
 
     JMenu helpMenu;
     JMenuItem aboutItem;
@@ -101,12 +103,18 @@ public class MainFrame extends JFrame {
 
         // 语言菜单
         langMenu = new JMenu("语言");
-        langZhItem = new JMenuItem("简体中文(zh)");
+        langZhItem = new JMenuItem("简体中文");
         langZhItem.addActionListener(e -> changeLanguage(Locale.CHINESE));
         langMenu.add(langZhItem);
-        langEnItem = new JMenuItem("英语(en)");
+        langEnItem = new JMenuItem("English");
         langEnItem.addActionListener(e -> changeLanguage(Locale.US));
         langMenu.add(langEnItem);
+        langJaItem = new JMenuItem("日本語");
+        langJaItem.addActionListener(e -> changeLanguage(Locale.JAPAN));
+        langMenu.add(langJaItem);
+        langRuItem = new JMenuItem("Русский");
+        langRuItem.addActionListener(e -> changeLanguage(new Locale("ru_RU")));
+        langMenu.add(langRuItem);
 
         // 帮助菜单
         helpMenu = new JMenu("帮助");
@@ -168,6 +176,8 @@ public class MainFrame extends JFrame {
         langMenu.setText(I18n.getString("menu.lang"));
         langZhItem.setText(I18n.getString("menu.lang.zh"));
         langEnItem.setText(I18n.getString("menu.lang.en"));
+        langJaItem.setText(I18n.getString("menu.lang.ja"));
+        langRuItem.setText(I18n.getString("menu.lang.ru"));
 
         helpMenu.setText(I18n.getString("menu.help"));
         aboutItem.setText(I18n.getString("menu.help.about"));
