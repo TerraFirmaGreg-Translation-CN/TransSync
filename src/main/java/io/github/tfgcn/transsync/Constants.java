@@ -34,7 +34,7 @@ public final class Constants {
 
     public static final MediaType MULTIPART_FORM_DATA = MediaType.parse("multipart/form-data");
 
-    public static final String VERSION = "1.2.2";
+    public static final String VERSION = "1.2.3";
     public static final String DESCRIPTION = "Toolkit for sync TerraFirmaGreg Chinese translation with paratrans.cn";
     public static final int WINDOW_MIN_WIDTH = 640;
     public static final int WINDOW_MIN_HEIGHT = 500;
