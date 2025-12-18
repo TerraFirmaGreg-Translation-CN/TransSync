@@ -19,7 +19,6 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import retrofit2.Response;
 
 import java.io.File;
@@ -163,10 +162,11 @@ public class SyncService {
         for (FileScanResult item : fileList) {
             File file = getAbsoluteFile(item.getSourceFilePath());
             String remoteFolder = item.getTranslationFileFolder();
+            String remoteFileName = item.getTranslationFileName();
 
             FilesDto remoteFile = remoteFilesMap.get(item.getTranslationFilePath());
             if (remoteFile == null) {
-                uploadFile(remoteFolder, file);
+                uploadFile(remoteFolder, remoteFileName, file);
             } else {
                 updateFile(remoteFile, remoteFolder, file);
             }
@@ -191,10 +191,10 @@ public class SyncService {
         }
     }
 
-    public void uploadFile(String remoteFolder, File file) throws IOException, ApiException {
+    public void uploadFile(String remoteFolder, String remoteFileName, File file) throws IOException, ApiException {
 
-        log.info("[NEW] {}/{}", remoteFolder, file.getName());
-        MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(),
+        log.info("[NEW] {}/{}", remoteFolder, remoteFileName);
+        MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", remoteFileName,
                 RequestBody.create(Constants.MULTIPART_FORM_DATA, file));
 
         RequestBody pathPart = RequestBody.create(Constants.MULTIPART_FORM_DATA, remoteFolder);
@@ -216,11 +216,12 @@ public class SyncService {
     public String uploadSourceFile(FileScanResult scannedFile) throws IOException, ApiException {
         File file = getAbsoluteFile(scannedFile.getSourceFilePath());
         String remoteFolder = scannedFile.getTranslationFileFolder();
+        String remoteFileName = scannedFile.getTranslationFileName();
 
         // 生成上传 paratranz 的最终文件名。可用于比较远程文件是否已存在
         FilesDto remoteFile = remoteFilesMap.get(scannedFile.getTranslationFilePath());
         if (remoteFile == null) {
-            uploadFile(remoteFolder, file);
+            uploadFile(remoteFolder, remoteFileName, file);
             return I18n.getString("label.completed.newFile");
         } else {
             try (FileInputStream fis = new FileInputStream(file)) {

@@ -28,4 +28,20 @@ public class FileScanResult {
         int index = translationFilePath.lastIndexOf(Constants.SEPARATOR);
         return index > -1 ? translationFilePath.substring(0, index) : "";
     }
+
+    public String getSourceFileName() {
+        if (sourceFilePath == null) {
+            return "";
+        }
+        int index = sourceFilePath.lastIndexOf(Constants.SEPARATOR);
+        return index > -1 ? sourceFilePath.substring(index + 1) : sourceFilePath;
+    }
+
+    public String getTranslationFileName() {
+        if (translationFilePath == null) {
+            return "";
+        }
+        int index = translationFilePath.lastIndexOf(Constants.SEPARATOR);
+        return index > -1 ? translationFilePath.substring(index + 1) : translationFilePath;
+    }
 }
